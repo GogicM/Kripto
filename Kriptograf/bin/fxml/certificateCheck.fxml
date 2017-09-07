@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="193.0" prefWidth="551.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Label layoutX="22.0" layoutY="94.0" text="Attach your digital certifcate :" />
+      <TextField layoutX="184.0" layoutY="90.0" prefHeight="25.0" prefWidth="260.0" />
+      <Button layoutX="452.0" layoutY="90.0" mnemonicParsing="false" text="Browse..." />
+   </children>
+</Pane>
