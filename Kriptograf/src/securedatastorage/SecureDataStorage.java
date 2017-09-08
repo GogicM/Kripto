@@ -14,7 +14,8 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class SecureDataStorage extends Application {
-	   @Override
+	   	
+		@Override
 	    public void start(final Stage primaryStage) throws Exception {
 	        FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/loginForm.fxml"));
 	        Parent root = loader.load();

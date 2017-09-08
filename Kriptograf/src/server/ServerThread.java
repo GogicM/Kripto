@@ -86,7 +86,7 @@ public class ServerThread extends Thread {
 
                        X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
                        System.out.println("CERT FINAL : " + certificate);
-                     //  oos.writeObject("true");
+                       oos.writeObject("true");
                        //cert check
                    //    oos.writeObject(checkCertificate(certificate));
                    }

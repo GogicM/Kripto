@@ -10,6 +10,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
 import java.security.PrivateKey;
 import crypto.Crypto;
@@ -51,7 +52,10 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
@@ -69,8 +73,8 @@ import org.apache.commons.codec.digest.DigestUtils;
  * @author Milan
  */
 public class SignInController {
-
-    private Stage stage = new Stage();
+	
+	private Stage stage = new Stage();
     private static final int PORT_NUMBER = 9999;
     private static ObjectOutputStream oos;
     private static ObjectInputStream ois;
@@ -196,12 +200,16 @@ public class SignInController {
         try {
             if (sendCertificate(uName)) {
                 FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/userPanel.fxml"));
-                Parent root = loader.load();
-                SignInController controller = loader.getController();
-                controller.setStage(stage);
-                stage.setTitle("Welcome ");
-                stage.setScene(new Scene(root, 450, 350));
-                stage.show();
+                Parent root = (Parent) loader.load();
+                UserPanelController controller = loader.getController();
+//                controller.setStage(stage);
+//                stage.setTitle("Welcome ");
+//                stage.setScene(new Scene(root, 450, 350));
+//                stage.show();
+                Stage stage1 = new Stage();
+                stage1.setTitle(" User panel");
+                stage1.setScene(new Scene(root));  
+                stage1.show();
             }
         } catch (IOException ex) {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
@@ -216,7 +224,8 @@ public class SignInController {
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
         } catch (CertificateException ex) {
-			// TODO Auto-generated catch block
+            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
 		}
     }
@@ -277,7 +286,8 @@ public class SignInController {
     
     private boolean sendCertificate(String uName) throws InvalidKeyException,
     			IllegalBlockSizeException, BadPaddingException, 
-    			IOException, CertificateException, ClassNotFoundException {
+    			IOException, CertificateException, ClassNotFoundException,
+    			NoSuchAlgorithmException {
     	
     	boolean isGood = false;
     	String option = "cert";

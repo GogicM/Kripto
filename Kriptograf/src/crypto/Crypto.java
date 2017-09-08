@@ -7,11 +7,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -22,21 +24,29 @@ import java.util.Base64;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
 
 public class Crypto {
 
-	   private Cipher asymmCipher;
+	   	private Cipher asymmCipher;
 	    //one cipher for asymmetric and one for symmetric
 	    private Cipher symmCipher;
-
+	    
+	    public IvParameterSpec iv;
+	    SecureRandom sr;
+	    KeyGenerator kg;
 	    public Crypto() throws NoSuchAlgorithmException, NoSuchPaddingException {
 	        this.asymmCipher = Cipher.getInstance("RSA");
 	        // this.asymmCipher.init(keylength);
-	        this.symmCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+	        //Changed from CBC to ECB, had problems with iv for CBC
+	        this.symmCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+
 	    }
 
 	    /*
@@ -84,9 +94,16 @@ public class Crypto {
 	     */
 	    public byte[] SymmetricFileEncryption(byte[] file, SecretKey key)
 	            throws InvalidKeyException, IllegalBlockSizeException,
-	            BadPaddingException {
-
+	            BadPaddingException, NoSuchAlgorithmException {
+	    	
+//	    	sr = SecureRandom.getInstance("SHA1PRNG");
+//	    	kg = KeyGenerator.getInstance("AES");
+//	    	kg.init(128, sr);
+	    	
 	        this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
+	       // Crypto.iv = new IvParameterSpec(this.symmCipher.getIV());
+	     //   iv = new IvParameterSpec(this.symmCipher.getIV());
+
 	        return this.symmCipher.doFinal(file);
 	    }
 
@@ -95,8 +112,15 @@ public class Crypto {
 	     */
 	    public byte[] SymmetricFileDecription(byte[] file, SecretKey key)
 	            throws InvalidKeyException, IllegalBlockSizeException,
-	            BadPaddingException {
-	        this.symmCipher.init(Cipher.DECRYPT_MODE, key);
+	            BadPaddingException, InvalidAlgorithmParameterException {
+	        //System.out.println("IV : " + this.iv);
+//	        try {
+//				Thread.currentThread().sleep(3000);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+	    	this.symmCipher.init(Cipher.DECRYPT_MODE, key);
 	        return this.symmCipher.doFinal(file);
 	    }
 
@@ -104,7 +128,9 @@ public class Crypto {
 	        Method for asymmetric encription of file
 	     */
 	    public byte[] AsymmetricFileEncription(byte[] file, PublicKey pubKey)
-	            throws IOException, GeneralSecurityException {
+	            throws IOException, InvalidKeyException, IllegalBlockSizeException, 
+	            BadPaddingException {
+	    	
 	        this.asymmCipher.init(Cipher.ENCRYPT_MODE, pubKey);
 	        return this.asymmCipher.doFinal(file);
 	    }
