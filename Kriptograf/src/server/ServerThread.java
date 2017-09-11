@@ -76,16 +76,12 @@ public class ServerThread extends Thread {
                    if("cert".equals(option)) {
 
                        byte[] receivedCertificate = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
-                       System.out.println("CERT: " + receivedCertificate);
 
                        CertificateFactory cFactory = CertificateFactory.getInstance("X.509");
-                       System.out.println("MILAN");
 
                        InputStream in = new ByteArrayInputStream(receivedCertificate);
-                       System.out.println("MILAN");
 
                        X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
-                       System.out.println("CERT FINAL : " + certificate);
                        oos.writeObject("true");
                        //cert check
                    //    oos.writeObject(checkCertificate(certificate));
@@ -128,4 +124,22 @@ public class ServerThread extends Thread {
 
         return active;
     }
+    
+	private String[] getFileNames(String path) {
+		
+		
+		File folder = new File(path);
+		File[] files = folder.listFiles();
+		String[] fileNames = new String[files.length];
+		int j = 0;
+		
+		for(int i = 0; i < files.length; i++) {
+			if(files[i].isFile()) {
+				fileNames[j] = files[i].getName();
+				j++;
+			}
+		}
+		return fileNames;
+	}
+	
 }

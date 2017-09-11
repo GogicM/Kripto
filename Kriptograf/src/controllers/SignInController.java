@@ -24,6 +24,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -74,6 +75,7 @@ import org.apache.commons.codec.digest.DigestUtils;
  */
 public class SignInController {
 	
+	public static Stage stage1 = new Stage();
 	private Stage stage = new Stage();
     private static final int PORT_NUMBER = 9999;
     private static ObjectOutputStream oos;
@@ -105,11 +107,25 @@ public class SignInController {
 
     @FXML
     private void initialize() {
+    	
+    	send.setVisible(false);
+        browseLabel.setVisible(false);
+        addCertLabel.setVisible(false);
+        browse.setVisible(false);
+          
+        InetAddress iAddress;
+		
+        try {
+        	iAddress = InetAddress.getByName("127.0.0.1");
 
-        send.setVisible(false);
-          browseLabel.setVisible(false);
-          addCertLabel.setVisible(false);
-          browse.setVisible(false);
+        	socket = new Socket(iAddress, PORT_NUMBER);
+        	oos = new ObjectOutputStream(socket.getOutputStream());
+        	ois = new ObjectInputStream(socket.getInputStream());
+          
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     @FXML
@@ -121,10 +137,7 @@ public class SignInController {
             // String option = "login";
             
             try {
-                InetAddress iAddress = InetAddress.getByName("127.0.0.1");
-                socket = new Socket(iAddress, PORT_NUMBER);
-                oos = new ObjectOutputStream(socket.getOutputStream());
-                ois = new ObjectInputStream(socket.getInputStream());
+
                 asymmetricCrypto = new Crypto();
                 if(new File("src\\keys\\" + uName + "Public.der").exists()) {
 	                publicKey = asymmetricCrypto.getPublicKey("src\\keys\\" + uName + "Public.der");
@@ -206,10 +219,12 @@ public class SignInController {
 //                stage.setTitle("Welcome ");
 //                stage.setScene(new Scene(root, 450, 350));
 //                stage.show();
-                Stage stage1 = new Stage();
+                
+           //     controller.initialize();
                 stage1.setTitle(" User panel");
                 stage1.setScene(new Scene(root));  
                 stage1.show();
+                stage.hide();
             }
         } catch (IOException ex) {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);

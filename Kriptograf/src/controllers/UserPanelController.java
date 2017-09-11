@@ -6,7 +6,14 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import crypto.Crypto;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -14,25 +21,38 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 public class UserPanelController {
 	
-	private static String PATH = "src/files/";
+	private static String PATH = "src/server/users/";
 	
+	
+    private ObservableList<String> data = FXCollections.observableArrayList();
+    private String fileName;
+    private String fileContent;
+    private ObjectOutputStream oos;
+    private ObjectInputStream ois;
+    private Socket socket;
+    private Crypto asymmetricCrypto;
+    
+    private static final int PORT_NUMBER = 9999;
 
-    ObservableList<String> data = FXCollections.observableArrayList();
-    String fileName;
-    String fileContent;
 	@FXML
-    ListView<String> list = new ListView<String>();
+    ListView<String> list;
     @FXML
     private Button saveButton;
     @FXML
@@ -40,33 +60,42 @@ public class UserPanelController {
     @FXML
     private Button showLogsButton;
     @FXML
-    private TextArea tArea = new TextArea();
+    private TextArea tArea;
+    @FXML
+    private TextArea logs;
+    @FXML
+    private Button uploadNewButton;
     
     
-    public void start(Stage stage) {
-        VBox box = new VBox();
-        Button save = new Button();
-        save.setText("Save");
-        Scene scene = new Scene(box, 300, 300);
-        stage.setScene(scene);
-        stage.setTitle("ListViewSample");
-        box.getChildren().addAll(list, tArea, save);
-        VBox.setVgrow(list, Priority.ALWAYS);
-        data.addAll(getFileNames(PATH));
-        tArea.setLayoutX(100);
-        tArea.setLayoutY(300);
-        tArea.setFont(Font.font("Verdana", 20));
- 
+    @FXML
+    private void initialize() {
+    	
+        tArea.setVisible(false);
+    	logs.setVisible(false);
+
+        System.out.println("FILE NAMES : " + getFileNames(PATH + "user/"));
+
+        data.addAll(getFileNames(PATH + "user/"));
         list.setItems(data);
- 
+        
+        try {
+            InetAddress iAddress = InetAddress.getByName("127.0.0.1");
+            socket = new Socket(iAddress, PORT_NUMBER);
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            ois = new ObjectInputStream(socket.getInputStream());
+            asymmetricCrypto = new Crypto();
+            
+        } catch(Exception e) {
+        	e.printStackTrace();
+        }
  
         list.getSelectionModel().selectedItemProperty().addListener(
             new ChangeListener<String>() {
                 public void changed(ObservableValue<? extends String> ov, 
                     String old_val, String new_val) {
                         try {
-                        	tArea.setText(getFileContent(PATH + new_val));
-							fileName = PATH + new_val;
+                        	tArea.setText(getFileContent(PATH + "/user/" + new_val));
+							fileName = PATH + "/user/" + new_val;
 							
 						} catch (IOException e) {
 							e.printStackTrace();
@@ -75,18 +104,52 @@ public class UserPanelController {
             }
         });
         
-        save.setOnAction(new EventHandler<ActionEvent> () {
-        	 @Override public void handle(ActionEvent e) {
-        		 try {
-					writeToFile(fileName, tArea.getText());
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-        	 }
-        });
-        stage.show();
+       SignInController.stage1.show();
     }
     
+    @FXML
+    protected void handleSaveButton(ActionEvent event) {
+    	
+    	try {
+    		writeToFile(fileName, tArea.getText());
+    		alert("You successfully edited file");
+    		tArea.setVisible(false);
+    	} catch(IOException ex) {
+            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+    	}
+    	
+    }
+    
+    @FXML
+    protected void handleEditButton(ActionEvent event) {
+        
+    	tArea.setVisible(true);
+    }
+    
+    @FXML
+    protected void handleShowLogsButton(ActionEvent event) {
+        
+    	logs.setVisible(true);
+    }
+    
+    @FXML
+    protected void uploadNewFileHandler(ActionEvent event) {
+        FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/uploadNewFileForm.fxml"));
+        try {
+			Parent root = (Parent) loader.load();
+
+        UserPanelController controller = loader.getController();
+        
+        Stage stage = new Stage();
+        stage.setTitle(" User panel");
+        stage.setScene(new Scene(root));  
+        stage.show();
+//        stage.hide();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+    }
     
 	private String[] getFileNames(String path) {
 	
@@ -117,6 +180,7 @@ public class UserPanelController {
 		        sb.append(System.lineSeparator());
 			}
 			content = sb.toString();
+			System.out.println(content);
 			br.close();
 		return content;
 	}
@@ -130,5 +194,14 @@ public class UserPanelController {
 		bw.close();
 		
 	}
+	
+    private void alert(String message) {
 
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Information");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+
+        alert.showAndWait();
+    }
 }

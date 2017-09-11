@@ -41,6 +41,8 @@ public class Crypto {
 	    public IvParameterSpec iv;
 	    SecureRandom sr;
 	    KeyGenerator kg;
+	    
+	    
 	    public Crypto() throws NoSuchAlgorithmException, NoSuchPaddingException {
 	        this.asymmCipher = Cipher.getInstance("RSA");
 	        // this.asymmCipher.init(keylength);
