@@ -10,8 +10,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.PrivateKey;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 
 import crypto.Crypto;
 import javafx.beans.value.ChangeListener;
@@ -47,10 +52,10 @@ public class UserPanelController {
     private ObjectOutputStream oos;
     private ObjectInputStream ois;
     private Socket socket;
-    private Crypto asymmetricCrypto;
+    private Crypto crypto;
     
     private static final int PORT_NUMBER = 9999;
-
+    //private PrivateKey privateKey = new SignInController().getPrivateKey();
 	@FXML
     ListView<String> list;
     @FXML
@@ -69,37 +74,47 @@ public class UserPanelController {
     
     @FXML
     private void initialize() {
-    	
-        tArea.setVisible(false);
-    	logs.setVisible(false);
-
-        System.out.println("FILE NAMES : " + getFileNames(PATH + "user/"));
-
-        data.addAll(getFileNames(PATH + "user/"));
-        list.setItems(data);
         
-        try {
+    	try {
             InetAddress iAddress = InetAddress.getByName("127.0.0.1");
             socket = new Socket(iAddress, PORT_NUMBER);
             oos = new ObjectOutputStream(socket.getOutputStream());
             ois = new ObjectInputStream(socket.getInputStream());
-            asymmetricCrypto = new Crypto();
+            crypto = new Crypto();
             
         } catch(Exception e) {
         	e.printStackTrace();
         }
+        tArea.setVisible(false);
+    	logs.setVisible(false);
+
+
+        try {
+			data.addAll(getFileNames(PATH + "user/"));
+		} catch (ClassNotFoundException | IOException e1) {
+			e1.printStackTrace();
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		}
+        list.setItems(data);
+        
+
  
         list.getSelectionModel().selectedItemProperty().addListener(
             new ChangeListener<String>() {
                 public void changed(ObservableValue<? extends String> ov, 
                     String old_val, String new_val) {
-                        try {
-                        	tArea.setText(getFileContent(PATH + "/user/" + new_val));
+//                        try {
+  //                      	tArea.setText(getFileContent(PATH + SignInController.uName + new_val));
 							fileName = PATH + "/user/" + new_val;
-							
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
+//							
+//						} catch (IOException e) {
+//							e.printStackTrace();
+//						}
                     
             }
         });
@@ -111,7 +126,8 @@ public class UserPanelController {
     protected void handleSaveButton(ActionEvent event) {
     	
     	try {
-    		writeToFile(fileName, tArea.getText());
+    		//writeToFile(fileName, tArea.getText());
+    		oos.writeObject("modify");
     		alert("You successfully edited file");
     		tArea.setVisible(false);
     	} catch(IOException ex) {
@@ -133,7 +149,7 @@ public class UserPanelController {
     }
     
     @FXML
-    protected void uploadNewFileHandler(ActionEvent event) {
+    protected void handleUploadNewFile(ActionEvent event) {
         FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/uploadNewFileForm.fxml"));
         try {
 			Parent root = (Parent) loader.load();
@@ -151,39 +167,62 @@ public class UserPanelController {
 
     }
     
-	private String[] getFileNames(String path) {
+	private String[] getFileNames(String path) throws IOException, ClassNotFoundException, 
+		InvalidKeyException, IllegalBlockSizeException, 
+		BadPaddingException {
 	
-	
-		File folder = new File(path);
-		File[] files = folder.listFiles();
-		String[] fileNames = new String[files.length];
-		int j = 0;
-		
-		for(int i = 0; i < files.length; i++) {
-			if(files[i].isFile()) {
-				fileNames[j] = files[i].getName();
-				j++;
-			}
+		String[] fileNames = null;
+		String[] cFileNames;
+		String option = "get";
+		//oos.writeObject(crypto.EncryptStringAsymmetric(" ", SignInController.privateKey));
+		String encOption = crypto.EncryptStringAsymmetric(option, SignInController.privateKey);
+		oos.writeObject(encOption);
+		cFileNames = (String[]) ois.readObject();
+		for(int i = 0; i < cFileNames.length; i++) {
+			try {
+				fileNames[i] = crypto.DecryptStringSymmetric(cFileNames[i], SignInController.sessionKey);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
 		}
+//		File folder = new File(path);
+//		File[] files = folder.listFiles();
+//		String[] fileNames = new String[files.length];
+//		int j = 0;
+//		
+//		for(int i = 0; i < files.length; i++) {
+//			if(files[i].isFile()) {
+//				fileNames[j] = files[i].getName();
+//				j++;
+//			}
+//		}
 		return fileNames;
 	}
 	
-	private String getFileContent(String pathToFile) throws IOException {
-		
-	    StringBuilder sb = new StringBuilder();
-		String line;
-		String content;
-		File file = new File(pathToFile);
-		BufferedReader br = new BufferedReader(new FileReader(file));
-			while((line = br.readLine()) != null) {
-				sb.append(line);
-		        sb.append(System.lineSeparator());
-			}
-			content = sb.toString();
-			System.out.println(content);
-			br.close();
-		return content;
-	}
+//	private String getFileContent(String pathToFile) throws IOException {
+//		
+//	    StringBuilder sb = new StringBuilder();
+//		String line;
+//		String content;
+//		File file = new File(pathToFile);
+//		BufferedReader br = new BufferedReader(new FileReader(file));
+//			while((line = br.readLine()) != null) {
+//				sb.append(line);
+//		        sb.append(System.lineSeparator());
+//			}
+//			content = sb.toString();
+//			System.out.println(content);
+//			br.close();
+//		return content;
+//	}
+	
+//	private String getFileContent(String pathToFile) throws IOException {
+//		
+//		String fileContent;
+//		
+//		
+//		return fileContent;
+//	}
 	
 	public void writeToFile(String path, String data) throws IOException {
 		File file = new File(path);
@@ -204,4 +243,5 @@ public class UserPanelController {
 
         alert.showAndWait();
     }
+   
 }

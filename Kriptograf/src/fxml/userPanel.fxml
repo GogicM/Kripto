@@ -5,16 +5,16 @@
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.Pane?>
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.UserPanelController">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="411.0" prefWidth="591.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.UserPanelController">
    <children>
-      <ListView fx:id="list" layoutX="386.0" layoutY="8.0" prefHeight="173.0" prefWidth="200.0" />
-      <TextArea fx:id="logs" layoutX="400.0" layoutY="174.0" prefHeight="200.0" prefWidth="200.0" />
-      <Button fx:id="saveButton" layoutX="335.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleSaveButton" text="Save" />
-      <Button fx:id="showLogsButton" layoutX="177.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleShowLogsButton" text="Show Logs" />
+      <ListView fx:id="list" layoutX="393.0" layoutY="9.0" prefHeight="161.0" prefWidth="184.0" />
+      <TextArea fx:id="logs" layoutX="393.0" layoutY="187.0" prefHeight="200.0" prefWidth="184.0" />
+      <Button fx:id="saveButton" layoutX="303.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleSaveButton" text="Save" />
+      <Button fx:id="showLogsButton" layoutX="139.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleShowLogsButton" text="Show Logs" />
       <TextArea fx:id="tArea" layoutX="12.0" layoutY="213.0" prefHeight="173.0" prefWidth="368.0" />
-      <Button fx:id="downloadButton" layoutX="257.0" layoutY="174.0" mnemonicParsing="false" text="Download" />
-      <Button fx:id="editButton" layoutX="133.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleEditButton" text="Edit" />
+      <Button fx:id="downloadButton" layoutX="225.0" layoutY="174.0" mnemonicParsing="false" text="Download" />
+      <Button fx:id="editButton" layoutX="96.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleEditButton" text="Edit" />
       <TextArea layoutX="12.0" layoutY="9.0" prefHeight="161.0" prefWidth="368.0" promptText="Here you can enter data which will be stored in new file on server" />
-      <Button fx:id="uploadNewButton" layoutX="72.0" layoutY="174.0" mnemonicParsing="false" onAction="#uploadNewFileHandler" text="Upload new file" />
+      <Button fx:id="uploadNewButton" layoutX="14.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleUploadNewFile" text="Upload file" />
    </children>
 </Pane>

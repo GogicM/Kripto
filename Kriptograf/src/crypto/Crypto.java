@@ -149,11 +149,12 @@ public class Crypto {
 	    /*
 	        Method for write encrypted file
 	     */
-	    public void writeToFile(File file, byte[] data) throws IOException,
-	            IllegalBlockSizeException, BadPaddingException {
+	    public void writeToFile(File file, byte[] data, SecretKey key) throws IOException,
+	            IllegalBlockSizeException, BadPaddingException, 
+	            InvalidKeyException {
 
-	        FileOutputStream fos = new FileOutputStream(file);
-
+	        FileOutputStream fos = new FileOutputStream(file, false);
+	        this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
 	        byte[] output = this.symmCipher.doFinal(data);
 
 	        fos.write(output);
@@ -203,6 +204,7 @@ public class Crypto {
 	    public String DecryptStringAsymmetric(String encMessage, PublicKey key) 
 	            throws InvalidKeyException, IllegalBlockSizeException, 
 	            BadPaddingException {
+	    	
 	        this.asymmCipher.init(Cipher.DECRYPT_MODE, key);
 	        return new String(asymmCipher.doFinal(Base64.getDecoder().decode(encMessage)));
 	    }

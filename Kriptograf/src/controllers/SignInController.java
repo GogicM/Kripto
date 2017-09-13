@@ -82,13 +82,13 @@ public class SignInController {
     private static ObjectInputStream ois;
     private static Socket socket;
     private static Crypto asymmetricCrypto;
-    private static SecretKey sessionKey;
+    protected static SecretKey sessionKey;
     private static X509Certificate certificate;
     private static String username;
     private PublicKey publicKey;
-    private PrivateKey privateKey;
+    protected static PrivateKey privateKey;
     private final Desktop desktop = Desktop.getDesktop();
-    private String uName;
+    protected static String uName;
     private String password;
     @FXML
     private Button signIn;
@@ -357,5 +357,9 @@ public class SignInController {
     
     private String cipher(String password) {
         return DigestUtils.sha256Hex(password);
+    }
+    
+    protected  PrivateKey getPrivateKey() {
+    	return privateKey;
     }
 }
