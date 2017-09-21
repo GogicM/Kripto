@@ -88,6 +88,7 @@ public class ServerThread extends Thread {
                         userName = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                         password = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                         //login response
+                        
                         boolean login = loginCheck(userName, password);
                         if (login) {
                             oos.writeObject(loginCheck(userName, password));	
@@ -103,11 +104,22 @@ public class ServerThread extends Thread {
                        InputStream in = new ByteArrayInputStream(receivedCertificate);
 
                        X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
-                       oos.writeObject("true");
+                       //System.out.println(certificate.toString());
+                       String cn = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                       System.out.println("CCCCCCCCNNNNNN : " + cn);
+                       if(cn.equals(certificate.getSubjectX500Principal().toString().split(",")[0])) {
+                           System.out.println("CCCCCCCCNNNNNN : " + cn);
+
+                    	   oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
+                           System.out.println("CCCCCCCCNNNNNN : " + cn);
+
+                       }
+                       else {
+                    	   oos.writeObject(aCrypto.EncryptStringSymmetric("false", sessionKey));
+                       }
                        //cert check
                    //    oos.writeObject(checkCertificate(certificate));
                    }
-                   System.out.println("OPTION : " + option);
                    //for new adding new file to file system
                    if("newFile".equals(option)) {
                 	   changeFileWatcher(userName);
@@ -117,6 +129,8 @@ public class ServerThread extends Thread {
                 	   
                    }
                    //for sending list of files 
+                   System.out.println("OPTION ispod certa : " + option);
+
                    if("get".equals(option)) {
                 	   System.out.println("OPCIJA " + option);
                 	   String[] fileNames = getFileNames(PATH + userName);

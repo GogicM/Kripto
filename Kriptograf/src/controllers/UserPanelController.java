@@ -49,10 +49,10 @@ public class UserPanelController {
     private ObservableList<String> data = FXCollections.observableArrayList();
     private String fileName;
     private String fileContent;
-    private ObjectOutputStream oos;
-    private ObjectInputStream ois;
+//    private ObjectOutputStream oos;
+//    private ObjectInputStream ois;
     private Socket socket;
-    private Crypto crypto;
+   // private Crypto crypto;
     
     private static final int PORT_NUMBER = 9999;
     //private PrivateKey privateKey = new SignInController().getPrivateKey();
@@ -74,21 +74,23 @@ public class UserPanelController {
     
     @FXML
     private void initialize() {
-        
-    	try {
-            InetAddress iAddress = InetAddress.getByName("127.0.0.1");
-            socket = new Socket(iAddress, PORT_NUMBER);
-            oos = new ObjectOutputStream(socket.getOutputStream());
-            ois = new ObjectInputStream(socket.getInputStream());
-            crypto = new Crypto();
-            
-        } catch(Exception e) {
-        	e.printStackTrace();
-        }
-        tArea.setVisible(false);
-    	logs.setVisible(false);
-
-
+//        System.out.println("USER PANEL CONTROLLER INIT");
+ //   	try {
+//            InetAddress iAddress = InetAddress.getByName("127.0.0.1");
+//            socket = new Socket(iAddress, PORT_NUMBER);
+//            oos = new ObjectOutputStream(socket.getOutputStream());
+//            ois = new ObjectInputStream(socket.getInputStream());
+//            crypto = new Crypto();
+            System.out.println("USER PANEL CONTROLLER INIT AFTER CRYPTO");
+//
+//        } catch(Exception e) {
+//        	e.printStackTrace();
+//        }
+//        tArea.setVisible(false);
+//    	logs.setVisible(false);
+//        System.out.println("USER PANEL CONTROLLER INIT AFTER set visible");
+//
+//
         try {
 			data.addAll(getFileNames(PATH + "user/"));
 		} catch (ClassNotFoundException | IOException e1) {
@@ -127,7 +129,7 @@ public class UserPanelController {
     	
     	try {
     		//writeToFile(fileName, tArea.getText());
-    		oos.writeObject("modify");
+    		SignInController.oos.writeObject("modify");
     		alert("You successfully edited file");
     		tArea.setVisible(false);
     	} catch(IOException ex) {
@@ -170,17 +172,17 @@ public class UserPanelController {
 	private String[] getFileNames(String path) throws IOException, ClassNotFoundException, 
 		InvalidKeyException, IllegalBlockSizeException, 
 		BadPaddingException {
-	
 		String[] fileNames = null;
 		String[] cFileNames;
 		String option = "get";
 		//oos.writeObject(crypto.EncryptStringAsymmetric(" ", SignInController.privateKey));
-		String encOption = crypto.EncryptStringAsymmetric(option, SignInController.privateKey);
-		oos.writeObject(encOption);
-		cFileNames = (String[]) ois.readObject();
+		String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("get", SignInController.privateKey);
+		SignInController.oos.writeObject(encOption);
+		cFileNames = (String[]) SignInController.ois.readObject();
+		System.out.println(cFileNames.toString());
 		for(int i = 0; i < cFileNames.length; i++) {
 			try {
-				fileNames[i] = crypto.DecryptStringSymmetric(cFileNames[i], SignInController.sessionKey);
+				fileNames[i] = SignInController.asymmetricCrypto.DecryptStringSymmetric(cFileNames[i], SignInController.sessionKey);
 			} catch (Exception e) {
 				e.printStackTrace();
 			} 

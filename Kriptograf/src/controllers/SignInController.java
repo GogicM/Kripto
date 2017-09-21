@@ -78,10 +78,10 @@ public class SignInController {
 	public static Stage stage1 = new Stage();
 	private Stage stage = new Stage();
     private static final int PORT_NUMBER = 9999;
-    private static ObjectOutputStream oos;
-    private static ObjectInputStream ois;
+    protected static ObjectOutputStream oos;
+    protected static ObjectInputStream ois;
     private static Socket socket;
-    private static Crypto asymmetricCrypto;
+    protected static Crypto asymmetricCrypto;
     protected static SecretKey sessionKey;
     private static X509Certificate certificate;
     private static String username;
@@ -154,9 +154,7 @@ public class SignInController {
 		            sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
 		                   0, length, "AES");
 		            //login went well, now client sends certificate
-		            System.out.println("SESSION KEY : " + sessionKey.toString());
 		            //alert("Wrong username or password!");
-
 				                 
 				                    //cert loaded, next is to send cert to server
 			   
@@ -170,8 +168,7 @@ public class SignInController {
 		             browseLabel.setVisible(true);
 	                 addCertLabel.setVisible(true);
 	                 browse.setVisible(true);
-//	            	 if (!loginCheck(uName, password)) {
-//	                	}
+
                 }
                 else {
                 	alert("Username doesn't exist!");
@@ -202,25 +199,24 @@ public class SignInController {
         if (browseLabel.getText() != null) {
             send.setVisible(true);
         }
-//        if (file != null) {
-//            openFile(file);
-//        }
 
     }
     
     @FXML
     protected void handleSendButton(ActionEvent event) {
         try {
+
             if (sendCertificate(uName)) {
+            	System.out.println("SEND CERTIFICATE ! : ");
+
                 FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/userPanel.fxml"));
-                Parent root = (Parent) loader.load();
-                UserPanelController controller = loader.getController();
-//                controller.setStage(stage);
-//                stage.setTitle("Welcome ");
-//                stage.setScene(new Scene(root, 450, 350));
-//                stage.show();
-                
-           //     controller.initialize();
+            	System.out.println("SEND CERTIFICATE ! : ");
+
+
+            	Parent root = (Parent) loader.load();
+            	System.out.println("SEND CERTIFICATE ! : ");
+
+            	UserPanelController controller = loader.getController();
                 stage1.setTitle(" User panel");
                 stage1.setScene(new Scene(root));  
                 stage1.show();
@@ -304,6 +300,8 @@ public class SignInController {
     			IOException, CertificateException, ClassNotFoundException,
     			NoSuchAlgorithmException {
     	
+    	String value = "";
+       
     	boolean isGood = false;
     	String option = "cert";
     	
@@ -312,8 +310,16 @@ public class SignInController {
     	String optionEncrypted = asymmetricCrypto.EncryptStringAsymmetric(option, privateKey);
     	oos.writeObject(optionEncrypted);
         certificate = asymmetricCrypto.getCertificate("src\\certificates\\" + uName + ".crt");
-    	oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(certificate.getEncoded(), sessionKey));	
-        isGood = Boolean.valueOf(ois.readObject().toString());
+    	oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(certificate.getEncoded(), sessionKey));
+    	String cn = certificate.getSubjectX500Principal().toString().split(",") [0];
+    	oos.writeObject(asymmetricCrypto.EncryptStringSymmetric(cn, sessionKey));
+        value = asymmetricCrypto.DecryptStringSymmetric((String) ois.readObject() , sessionKey);
+        System.out.println("VALUE : " + value);
+       
+        if(("true").equals(value)) {
+        	isGood = true;
+        	System.out.println("IS GOOD : " + isGood);
+        } 
         
     	return isGood;
     }
