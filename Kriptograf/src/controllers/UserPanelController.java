@@ -40,6 +40,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import server.ServerThread;
 
 public class UserPanelController {
 	
@@ -69,6 +70,8 @@ public class UserPanelController {
     @FXML
     private TextArea logs;
     @FXML
+    public static TextArea newFileContent;
+    @FXML
     private Button uploadNewButton;
     
     
@@ -81,18 +84,21 @@ public class UserPanelController {
 //            oos = new ObjectOutputStream(socket.getOutputStream());
 //            ois = new ObjectInputStream(socket.getInputStream());
 //            crypto = new Crypto();
-            System.out.println("USER PANEL CONTROLLER INIT AFTER CRYPTO");
 //
 //        } catch(Exception e) {
 //        	e.printStackTrace();
 //        }
-//        tArea.setVisible(false);
-//    	logs.setVisible(false);
+        tArea.setVisible(false);
+    	logs.setVisible(false);
 //        System.out.println("USER PANEL CONTROLLER INIT AFTER set visible");
 //
 //
         try {
-			data.addAll(getFileNames(PATH + "user/"));
+        	String[] fileNames = getFileNames(PATH + ServerThread.getUserName());
+        	System.out.println("FILE NAMES : " + fileNames);
+			data.addAll(fileNames);
+            System.out.println("USER PANEL CONTROLLER INIT AFTER DATA ADD ALL");
+            
 		} catch (ClassNotFoundException | IOException e1) {
 			e1.printStackTrace();
 		} catch (InvalidKeyException e) {
@@ -129,10 +135,10 @@ public class UserPanelController {
     	
     	try {
     		//writeToFile(fileName, tArea.getText());
-    		SignInController.oos.writeObject("modify");
+    		SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("modify",SignInController.privateKey));
     		alert("You successfully edited file");
     		tArea.setVisible(false);
-    	} catch(IOException ex) {
+    	} catch(Exception ex) {
             Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
     	}
     	
@@ -172,17 +178,25 @@ public class UserPanelController {
 	private String[] getFileNames(String path) throws IOException, ClassNotFoundException, 
 		InvalidKeyException, IllegalBlockSizeException, 
 		BadPaddingException {
-		String[] fileNames = null;
+		String[] fileNames;
 		String[] cFileNames;
 		String option = "get";
 		//oos.writeObject(crypto.EncryptStringAsymmetric(" ", SignInController.privateKey));
 		String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("get", SignInController.privateKey);
 		SignInController.oos.writeObject(encOption);
+		SignInController.oos.writeObject(encOption);
+
+		System.out.println("enc OPTION : " + encOption);
+
 		cFileNames = (String[]) SignInController.ois.readObject();
-		System.out.println(cFileNames.toString());
+		fileNames = new String[cFileNames.length];
+		System.out.println("FILE NAMES USER PANEL CONTROLLER ZIE: " + cFileNames.length);
 		for(int i = 0; i < cFileNames.length; i++) {
 			try {
+				System.out.println("FILE NAMES USER PANEL CONTROLLER : " + SignInController.asymmetricCrypto.DecryptStringSymmetric(cFileNames[i], SignInController.sessionKey));
+
 				fileNames[i] = SignInController.asymmetricCrypto.DecryptStringSymmetric(cFileNames[i], SignInController.sessionKey);
+
 			} catch (Exception e) {
 				e.printStackTrace();
 			} 

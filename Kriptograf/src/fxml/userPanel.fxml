@@ -14,7 +14,7 @@
       <TextArea fx:id="tArea" layoutX="12.0" layoutY="213.0" prefHeight="173.0" prefWidth="368.0" />
       <Button fx:id="downloadButton" layoutX="225.0" layoutY="174.0" mnemonicParsing="false" text="Download" />
       <Button fx:id="editButton" layoutX="96.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleEditButton" text="Edit" />
-      <TextArea layoutX="12.0" layoutY="9.0" prefHeight="161.0" prefWidth="368.0" promptText="Here you can enter data which will be stored in new file on server" />
+      <TextArea fx:id="newFileContent" layoutX="12.0" layoutY="9.0" prefHeight="161.0" prefWidth="368.0" promptText="Here you can enter data which will be stored in new file on server" />
       <Button fx:id="uploadNewButton" layoutX="14.0" layoutY="174.0" mnemonicParsing="false" onAction="#handleUploadNewFile" text="Upload file" />
    </children>
 </Pane>

@@ -153,16 +153,16 @@ public class SignInController {
 		            //sessionKey for symmetric encryption
 		            sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
 		                   0, length, "AES");
-		            //login went well, now client sends certificate
-		            //alert("Wrong username or password!");
-				                 
-				                    //cert loaded, next is to send cert to server
+		            //login went well, now client sends certificate				                 
 			   
 
 	                boolean login;
 	              do {
 	            	  login = loginCheck(uName, password);
 	            //    }
+	            	  if(!login) {
+	            		  alert("Wront user name or password!");
+	            	  }
 	                } while(!login);
 	           	                		
 		             browseLabel.setVisible(true);
@@ -324,7 +324,7 @@ public class SignInController {
     	return isGood;
     }
 
-    private void alert(String message) {
+    protected static void alert(String message) {
 
         Alert alert = new Alert(AlertType.ERROR);
         alert.setTitle("Error occured");

@@ -6,10 +6,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -219,5 +221,14 @@ public class Crypto {
 	        certificate = (X509Certificate) cf.generateCertificate(fis);
 
 	        return certificate;
+	    }
+	    
+	    private String encodeWithSHA256(String message) throws NoSuchAlgorithmException {
+	    	
+	    	MessageDigest digest = MessageDigest.getInstance("SHA-256");
+	    	byte[] hash = digest.digest(message.getBytes(StandardCharsets.UTF_8));
+	    	String encoded = Base64.getEncoder().encodeToString(hash);
+	    	
+	    	return encoded;
 	    }
 }

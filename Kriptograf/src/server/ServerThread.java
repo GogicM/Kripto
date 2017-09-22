@@ -28,6 +28,7 @@ import java.nio.file.WatchService;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.PublicKey;
@@ -40,6 +41,9 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+
+import controllers.SignInController;
+
 import java.io.ByteArrayInputStream;
 
 /**
@@ -55,7 +59,7 @@ public class ServerThread extends Thread {
     private KeyGenerator keyGenerator;
     private SecretKey sessionKey;
     private Crypto aCrypto;
-    private String userName;
+    private static String userName;
     private String password;
     private static final String PATH = "src/server/users/";
     public ServerThread(Socket socket) {
@@ -92,7 +96,7 @@ public class ServerThread extends Thread {
                         boolean login = loginCheck(userName, password);
                         if (login) {
                             oos.writeObject(loginCheck(userName, password));	
-                        }
+                        } 
                     }
                     
                    if("cert".equals(option)) {
@@ -135,6 +139,7 @@ public class ServerThread extends Thread {
                 	   System.out.println("OPCIJA " + option);
                 	   String[] fileNames = getFileNames(PATH + userName);
                 	   String[] cFileNames = new String[fileNames.length];
+                	   System.out.println("FILE NAMES SERVER : " + cFileNames.toString());
                 	   for(int i = 0; i < fileNames.length; i++) {
                 		   cFileNames[i] = aCrypto.EncryptStringSymmetric(fileNames[i], sessionKey);
                 	   }
@@ -143,8 +148,12 @@ public class ServerThread extends Thread {
                    //for editing file on server
                    if("modify".equals(option)) {
                 	   
-                	   File f = new File("src/server/users/" + userName);
+                	   String data = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                	   File f = new File(aCrypto.EncryptStringSymmetric("src/server/users/" + userName  , sessionKey));
 //                	   	f.mkdir();
+                	   if(!f.exists()) {
+                		   f.createNewFile();
+                	   }
                 	   byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
                 	   aCrypto.writeToFile(f, file, sessionKey);
                 	   changeFileWatcher(userName);
@@ -194,8 +203,11 @@ public class ServerThread extends Thread {
 	private String[] getFileNames(String path) {
 		
 		
-		File folder = new File(path);
+		File folder = new File(path + "/");
 		File[] files = folder.listFiles();
+		System.out.println("PATH : " + path);
+		System.out.println(" List of files : " + files.length + " " + files.toString());
+
 		String[] fileNames = new String[files.length];
 		int j = 0;
 		
@@ -216,9 +228,11 @@ public class ServerThread extends Thread {
 		
 		Path path = Paths.get("src/server/users/");
 		try {
-			File logs = new File("src/server/" + uName + "Log");
+			File logs = new File("src/server/Logs" + uName + "Log");
 			//BufferedWriter bw = new BufferedWriter(new FileWriter(logs, true));
-			
+			if(!logs.exists()) {
+				logs.createNewFile();
+			}
 			WatchService watcher = path.getFileSystem().newWatchService();
 			path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, 
 					StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE);
@@ -289,5 +303,26 @@ public class ServerThread extends Thread {
 		return file; 
 	}
 	
+	public static String getUserName() {
+		return userName;
+	}
 	
+	private boolean makeNewFile(String path, String data) throws IOException, GeneralSecurityException, 
+		IllegalBlockSizeException, BadPaddingException {
+	
+		boolean isCreated = false;
+	
+		File file = new File(aCrypto.EncryptStringSymmetric(path, sessionKey));
+		if(!file.exists()) {
+			file.createNewFile();
+			isCreated = true;
+			BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
+		
+			//bw.append(" ");
+			bw.write(data);
+			bw.close();
+		}
+	
+		return isCreated;
+	}
 }
