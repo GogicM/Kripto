@@ -70,10 +70,11 @@ public class UserPanelController {
     @FXML
     private TextArea logs;
     @FXML
-    public static TextArea newFileContent;
+    private  TextArea newFileContent;
     @FXML
     private Button uploadNewButton;
     
+    protected static String newFileData;
     
     @FXML
     private void initialize() {
@@ -90,14 +91,9 @@ public class UserPanelController {
 //        }
         tArea.setVisible(false);
     	logs.setVisible(false);
-//        System.out.println("USER PANEL CONTROLLER INIT AFTER set visible");
-//
-//
         try {
         	String[] fileNames = getFileNames(PATH + ServerThread.getUserName());
-        	System.out.println("FILE NAMES : " + fileNames);
 			data.addAll(fileNames);
-            System.out.println("USER PANEL CONTROLLER INIT AFTER DATA ADD ALL");
             
 		} catch (ClassNotFoundException | IOException e1) {
 			e1.printStackTrace();
@@ -117,7 +113,7 @@ public class UserPanelController {
                 public void changed(ObservableValue<? extends String> ov, 
                     String old_val, String new_val) {
 //                        try {
-  //                      	tArea.setText(getFileContent(PATH + SignInController.uName + new_val));
+                        	tArea.setText(getFileContent(PATH + SignInController.uName + "/" + new_val));
 							fileName = PATH + "/user/" + new_val;
 //							
 //						} catch (IOException e) {
@@ -152,7 +148,11 @@ public class UserPanelController {
     
     @FXML
     protected void handleShowLogsButton(ActionEvent event) {
-        
+        try {
+			SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("logs", SignInController.privateKey));
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
     	logs.setVisible(true);
     }
     
@@ -160,14 +160,15 @@ public class UserPanelController {
     protected void handleUploadNewFile(ActionEvent event) {
         FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/uploadNewFileForm.fxml"));
         try {
+        	newFileData = newFileContent.getText();
 			Parent root = (Parent) loader.load();
 
-        UserPanelController controller = loader.getController();
-        
-        Stage stage = new Stage();
-        stage.setTitle(" User panel");
-        stage.setScene(new Scene(root));  
-        stage.show();
+	        UploadNewFileController controller = loader.getController();
+	        
+	        Stage stage = new Stage();
+	        stage.setTitle(" User panel");
+	        stage.setScene(new Scene(root));  
+	        stage.show();
 //        stage.hide();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -178,10 +179,10 @@ public class UserPanelController {
 	private String[] getFileNames(String path) throws IOException, ClassNotFoundException, 
 		InvalidKeyException, IllegalBlockSizeException, 
 		BadPaddingException {
+		
 		String[] fileNames;
 		String[] cFileNames;
 		String option = "get";
-		//oos.writeObject(crypto.EncryptStringAsymmetric(" ", SignInController.privateKey));
 		String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("get", SignInController.privateKey);
 		SignInController.oos.writeObject(encOption);
 		SignInController.oos.writeObject(encOption);
@@ -258,6 +259,21 @@ public class UserPanelController {
         alert.setContentText(message);
 
         alert.showAndWait();
+    }
+    
+    private String getFileContent(String path) {
+    	String content = "";
+    	try {
+    		SignInController.oos.writeObject("");
+			SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("content", SignInController.privateKey));
+			SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(path, SignInController.sessionKey));
+			content = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
+			System.out.println("Content : " + content);
+    	} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return content;
     }
    
 }

@@ -28,10 +28,13 @@ public class UploadNewFileController {
 	@FXML
 	protected void uploadButtonHandler(ActionEvent event) {
 		try {
-			String data = UserPanelController.newFileContent.getText();
+			String data = UserPanelController.newFileData;
+			SignInController.oos.writeObject("");
 			String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("modify", SignInController.privateKey);
 			SignInController.oos.writeObject(encOption);
-			SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(data, SignInController.sessionKey));
+			SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tField.getText(), SignInController.sessionKey));
+
+			SignInController.oos.writeObject(SignInController.asymmetricCrypto.SymmetricFileEncryption(data.getBytes(), SignInController.sessionKey));
 //			else {
 				//SignInController.alert("File can not be created!");
 //			}

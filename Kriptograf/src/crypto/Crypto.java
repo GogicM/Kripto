@@ -50,6 +50,8 @@ public class Crypto {
 	        // this.asymmCipher.init(keylength);
 	        //Changed from CBC to ECB, had problems with iv for CBC
 	        this.symmCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+	       // this.symmCipher = Cipher.getInstance("AES/ECB/NoPadding");
+
 
 	    }
 

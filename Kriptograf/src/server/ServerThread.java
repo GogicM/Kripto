@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.WatchService;
@@ -148,10 +149,15 @@ public class ServerThread extends Thread {
                    //for editing file on server
                    if("modify".equals(option)) {
                 	   
-                	   String data = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                	   File f = new File(aCrypto.EncryptStringSymmetric("src/server/users/" + userName  , sessionKey));
+                	  // String data = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                	 //  System.out.println("DATA : " + data);
+                	   String fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                	   File f = new File("src/server/users/" + userName + "/" + aCrypto.EncryptStringSymmetric(fileName  , sessionKey));
+                	   System.out.println("FILE NAME : " + f.getAbsolutePath());
+                	   System.out.println("FILE NAME : " + f.getName());
 //                	   	f.mkdir();
                 	   if(!f.exists()) {
+                		   System.out.println("FILE CREATED!");
                 		   f.createNewFile();
                 	   }
                 	   byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
@@ -160,6 +166,12 @@ public class ServerThread extends Thread {
                    }
                    if("logs".equals(option)) {
                 	  oos.writeObject(aCrypto.SymmetricFileEncryption(getLog(userName), sessionKey)); 
+                   }
+                   if(("content").equals(option)) {
+                	   String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                	   System.out.println("PATH " + path);
+                	   String content = getFileContent(path);
+                	   oos.writeObject(aCrypto.EncryptStringSymmetric(content, sessionKey));
                    }
                 }
             }
@@ -315,14 +327,49 @@ public class ServerThread extends Thread {
 		File file = new File(aCrypto.EncryptStringSymmetric(path, sessionKey));
 		if(!file.exists()) {
 			file.createNewFile();
+			aCrypto.writeToFile(file, data.getBytes(), sessionKey);
 			isCreated = true;
-			BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
-		
+//			BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
+			
 			//bw.append(" ");
-			bw.write(data);
-			bw.close();
+//			bw.write(data);
+//			bw.close();
 		}
 	
 		return isCreated;
 	}
+	
+	private String getFileContent(String pathToFile) throws IOException {
+	
+    StringBuilder sb = new StringBuilder();
+	String line;
+	String content = "";
+	File file = new File(pathToFile);
+//	BufferedReader br = new BufferedReader(new FileReader(file));
+//		while((line = br.readLine()) != null) {
+//			sb.append(line);
+//	        sb.append(System.lineSeparator());
+//		}
+		try {
+			FileInputStream fin = null;
+				// create FileInputStream object
+			fin = new FileInputStream(file);
+
+			byte fileContent[] = new byte[(int)file.length()];
+				
+				// Reads up to certain bytes of data from this input stream into an array of bytes.
+			fin.read(fileContent);
+			//create string from byte array
+			String s = new String(aCrypto.SymmetricFileDecription(fileContent, sessionKey), StandardCharsets.UTF_16);
+			System.out.println("File content: " + s);
+
+			content = aCrypto.DecryptStringSymmetric(s, sessionKey);
+
+			System.out.println(aCrypto.DecryptStringSymmetric(content, sessionKey));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		//br.close();
+	return content;
+}
 }

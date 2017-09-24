@@ -6,10 +6,10 @@
 <?import javafx.scene.layout.Pane?>
 
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="161.0" prefWidth="251.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="161.0" prefWidth="251.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.UploadNewFileController">
    <children>
       <Label layoutX="6.0" layoutY="66.0" prefHeight="17.0" prefWidth="86.0" text="Enter file name :" />
       <TextField fx:id="tField" layoutX="100.0" layoutY="62.0" prefHeight="25.0" prefWidth="135.0" />
-      <Button fx:id="uploadButton" layoutX="100.0" layoutY="100.0" mnemonicParsing="false" text="Upload!" />
+      <Button fx:id="uploadButton" layoutX="100.0" layoutY="100.0" mnemonicParsing="false" onAction="#uploadButtonHandler" text="Upload!" />
    </children>
 </Pane>
