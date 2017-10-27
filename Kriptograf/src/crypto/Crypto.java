@@ -31,6 +31,9 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
+import java.security.Signature;
+import java.security.SignatureException;
+
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
 
@@ -50,7 +53,7 @@ public class Crypto {
 	        // this.asymmCipher.init(keylength);
 	        //Changed from CBC to ECB, had problems with iv for CBC
 	        this.symmCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-	       // this.symmCipher = Cipher.getInstance("AES/ECB/NoPadding");
+	        //this.symmCipher = Cipher.getInstance("AES/ECB/NoPadding");
 
 
 	    }
@@ -233,4 +236,23 @@ public class Crypto {
 	    	
 	    	return encoded;
 	    }
+	    
+	    public byte[] signMessagge(String message, PrivateKey privateKey) throws NoSuchAlgorithmException, 
+	    	InvalidKeyException, InvalidKeySpecException, IOException, SignatureException {
+	    	
+	    	Signature sig = Signature.getInstance("SHA1withRSA");
+	    	sig.initSign(privateKey);
+	    	sig.update(message.getBytes());
+	    	return sig.sign();
+	    	
+	    }
+	    
+	    public boolean verifyDigitalSignature( byte[] data, byte[] signature, PublicKey publicKey) 
+	    		throws GeneralSecurityException, IOException {
+	    	
+	    	 Signature sig = Signature.getInstance( "SHA1withRSA");
+	    	 sig.initVerify(publicKey);
+	    	 sig.update(data);
+	    	 return sig.verify(signature);
+	    	  }
 }

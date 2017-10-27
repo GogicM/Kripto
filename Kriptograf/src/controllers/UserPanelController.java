@@ -191,16 +191,17 @@ public class UserPanelController {
 
 		cFileNames = (String[]) SignInController.ois.readObject();
 		fileNames = new String[cFileNames.length];
-		System.out.println("FILE NAMES USER PANEL CONTROLLER ZIE: " + cFileNames.length);
 		for(int i = 0; i < cFileNames.length; i++) {
 			try {
-				System.out.println("FILE NAMES USER PANEL CONTROLLER : " + SignInController.asymmetricCrypto.DecryptStringSymmetric(cFileNames[i], SignInController.sessionKey));
 
 				fileNames[i] = SignInController.asymmetricCrypto.DecryptStringSymmetric(cFileNames[i], SignInController.sessionKey);
 
 			} catch (Exception e) {
+				
 				e.printStackTrace();
 			} 
+			System.out.println("FILE NAMES USER PANEL CONTROLLER : " + fileNames[0]);
+
 		}
 //		File folder = new File(path);
 //		File[] files = folder.listFiles();

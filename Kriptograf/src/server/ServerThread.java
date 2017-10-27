@@ -46,6 +46,7 @@ import javax.crypto.SecretKey;
 import controllers.SignInController;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 /**
  *
@@ -78,7 +79,9 @@ public class ServerThread extends Thread {
     public void run() {
         try {
             while (true) {
+            	
                 Object obj = ois.readObject();
+                
                 if (obj instanceof PublicKey) {
                     publicKey = (PublicKey) obj;
                     keyGenerator = KeyGenerator.getInstance("AES");
@@ -86,8 +89,8 @@ public class ServerThread extends Thread {
                     byte[] sessionKeyEnc = aCrypto.AsymmetricFileEncription(sessionKey.getEncoded(), publicKey);
                     oos.writeObject(sessionKeyEnc);
                 }
-
-                if (obj instanceof String) {
+                
+                if (obj instanceof String  /* && aCrypto.verifyDigitalSignature(data, signature, publicKey) */) {
                     String option = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                     if ("login".equals(option)) {
                         userName = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
@@ -360,7 +363,8 @@ public class ServerThread extends Thread {
 				// Reads up to certain bytes of data from this input stream into an array of bytes.
 			fin.read(fileContent);
 			//create string from byte array
-			String s = new String(aCrypto.SymmetricFileDecription(fileContent, sessionKey), StandardCharsets.UTF_16);
+			//byte[] array = aCrypto.SymmetricFileDecription(fileContent, sessionKey);
+			String s = new String(fileContent, StandardCharsets.UTF_16);
 			System.out.println("File content: " + s);
 
 			content = aCrypto.DecryptStringSymmetric(s, sessionKey);
@@ -370,6 +374,23 @@ public class ServerThread extends Thread {
 			e.printStackTrace();
 		}
 		//br.close();
-	return content;
-}
+		return content;
+	}
+	//helper method to convert Object to byte array
+    private static byte[] serialize(Object obj) throws IOException {
+        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
+            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+                o.writeObject(obj);
+            }
+            return b.toByteArray();
+        }
+    }
+    
+    public static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+        try(ByteArrayInputStream b = new ByteArrayInputStream(bytes)){
+            try(ObjectInputStream o = new ObjectInputStream(b)){
+                return o.readObject();
+            }
+        }
+    }
 }
