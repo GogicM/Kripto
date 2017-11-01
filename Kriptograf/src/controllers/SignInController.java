@@ -74,9 +74,9 @@ import org.apache.commons.codec.digest.DigestUtils;
  * @author Milan
  */
 public class SignInController {
-	
-	public static Stage stage1 = new Stage();
-	private Stage stage = new Stage();
+
+    public static Stage stage1 = new Stage();
+    private Stage stage = new Stage();
     private static final int PORT_NUMBER = 9999;
     protected static ObjectOutputStream oos;
     protected static ObjectInputStream ois;
@@ -107,71 +107,67 @@ public class SignInController {
 
     @FXML
     private void initialize() {
-    	
-    	send.setVisible(false);
+
+        send.setVisible(false);
         browseLabel.setVisible(false);
         addCertLabel.setVisible(false);
         browse.setVisible(false);
-          
-        InetAddress iAddress;
-		
-        try {
-        	iAddress = InetAddress.getByName("127.0.0.1");
 
-        	socket = new Socket(iAddress, PORT_NUMBER);
-        	oos = new ObjectOutputStream(socket.getOutputStream());
-        	ois = new ObjectInputStream(socket.getInputStream());
-          
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        InetAddress iAddress;
+
+        try {
+            iAddress = InetAddress.getByName("127.0.0.1");
+
+            socket = new Socket(iAddress, PORT_NUMBER);
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            ois = new ObjectInputStream(socket.getInputStream());
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
     @FXML
     protected void handleSignInButton(ActionEvent event) {
 
-        if(!uNameTextField.getText().isEmpty() && !pTextField.getText().isEmpty()) {
+        if (!uNameTextField.getText().isEmpty() && !pTextField.getText().isEmpty()) {
             uName = uNameTextField.getText();
             password = pTextField.getText();
             // String option = "login";
-            
+
             try {
 
                 asymmetricCrypto = new Crypto();
-                if(new File("src\\keys\\" + uName + "Public.der").exists()) {
-	                publicKey = asymmetricCrypto.getPublicKey("src\\keys\\" + uName + "Public.der");
-	                privateKey = asymmetricCrypto.getPrivateKey("src\\keys\\" + uName + "DER.key");
-	                //Exchange of keys for asymmetric crypto
-	                //send public key to server
-	                oos.writeObject(publicKey);
-		            System.out.println("USLO U LOGIN CHECK CLIENT SIDE!");
-		            // boolean b = Boolean.valueOf(ois.readObject().toString());
-		            byte[] keyFromServer = (byte[]) ois.readObject();
-		            System.out.println("KEY FROM SERVER " + keyFromServer);
-		            int length = asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey).length;
-		            //sessionKey for symmetric encryption
-		            sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
-		                   0, length, "AES");
-		            //login went well, now client sends certificate				                 
-			   
+                if (new File("src\\keys\\" + uName + "Public.der").exists()) {
+                    publicKey = asymmetricCrypto.getPublicKey("src\\keys\\" + uName + "Public.der");
+                    privateKey = asymmetricCrypto.getPrivateKey("src\\keys\\" + uName + "DER.key");
+                    //Exchange of keys for asymmetric crypto
+                    //send public key to server
+                    oos.writeObject(publicKey);
+                    // boolean b = Boolean.valueOf(ois.readObject().toString());
+                    byte[] keyFromServer = (byte[]) ois.readObject();
+                    int length = asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey).length;
+                    //sessionKey for symmetric encryption
+                    sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
+                            0, length, "DES");
+                    //login went well, now client sends certificate				                 
 
-	                boolean login;
-	              do {
-	            	  login = loginCheck(uName, password);
-	            //    }
-	            	  if(!login) {
-	            		  alert("Wront user name or password!");
-	            	  }
-	                } while(!login);
-	           	                		
-		             browseLabel.setVisible(true);
-	                 addCertLabel.setVisible(true);
-	                 browse.setVisible(true);
+                    boolean login;
+                    do {
+                        login = loginCheck(uName, password);
+                        //    }
+                        if (!login) {
+                            alert("Wront user name or password!");
+                        }
+                    } while (!login);
 
-                }
-                else {
-                	alert("Username doesn't exist!");
+                    browseLabel.setVisible(true);
+                    addCertLabel.setVisible(true);
+                    browse.setVisible(true);
+
+                } else {
+                    alert("Username doesn't exist!");
                 }
 //            	oos.flush();
 //            	oos.close();
@@ -179,12 +175,13 @@ public class SignInController {
 //            	socket.close();
             } catch (Exception e) {
                 e.printStackTrace();
-            } 
-         } else {
-        	 alert("Username or password field can not be empty!");
+            }
+        } else {
+            alert("Username or password field can not be empty!");
         }
-    
+
     }
+
     @FXML
     protected void handleBrowseButton(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
@@ -201,24 +198,23 @@ public class SignInController {
         }
 
     }
-    
+
     @FXML
     protected void handleSendButton(ActionEvent event) {
         try {
 
             if (sendCertificate(uName)) {
-            	System.out.println("SEND CERTIFICATE ! : ");
+                System.out.println("SEND CERTIFICATE ! : ");
 
                 FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/userPanel.fxml"));
-            	System.out.println("SEND CERTIFICATE ! : ");
+                System.out.println("SEND CERTIFICATE ! : ");
 
+                Parent root = (Parent) loader.load();
+                System.out.println("SEND CERTIFICATE ! : ");
 
-            	Parent root = (Parent) loader.load();
-            	System.out.println("SEND CERTIFICATE ! : ");
-
-            	UserPanelController controller = loader.getController();
+                UserPanelController controller = loader.getController();
                 stage1.setTitle(" User panel");
-                stage1.setScene(new Scene(root));  
+                stage1.setScene(new Scene(root));
                 stage1.show();
                 stage.hide();
             }
@@ -236,9 +232,9 @@ public class SignInController {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
         } catch (CertificateException ex) {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (NoSuchAlgorithmException ex) {
+        } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-		}
+        }
     }
 
     private static void configureFileChooser(final FileChooser fileChooser) {
@@ -290,38 +286,37 @@ public class SignInController {
         encryptedPassword = asymmetricCrypto.EncryptStringAsymmetric(securePassword, privateKey);
         oos.writeObject(encryptedPassword);
         login = Boolean.valueOf(ois.readObject().toString());
-        
 
         return login;
     }
-    
-    private boolean sendCertificate(String uName) throws InvalidKeyException,
-    			IllegalBlockSizeException, BadPaddingException, 
-    			IOException, CertificateException, ClassNotFoundException,
-    			NoSuchAlgorithmException {
-    	
-    	String value = "";
-       
-    	boolean isGood = false;
-    	String option = "cert";
-    	
-    	oos.writeObject("");
 
-    	String optionEncrypted = asymmetricCrypto.EncryptStringAsymmetric(option, privateKey);
-    	oos.writeObject(optionEncrypted);
+    private boolean sendCertificate(String uName) throws InvalidKeyException,
+            IllegalBlockSizeException, BadPaddingException,
+            IOException, CertificateException, ClassNotFoundException,
+            NoSuchAlgorithmException {
+
+        String value = "";
+
+        boolean isGood = false;
+        String option = "cert";
+
+        oos.writeObject("");
+
+        String optionEncrypted = asymmetricCrypto.EncryptStringAsymmetric(option, privateKey);
+        oos.writeObject(optionEncrypted);
         certificate = asymmetricCrypto.getCertificate("src\\certificates\\" + uName + ".crt");
-    	oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(certificate.getEncoded(), sessionKey));
-    	String cn = certificate.getSubjectX500Principal().toString().split(",") [0];
-    	oos.writeObject(asymmetricCrypto.EncryptStringSymmetric(cn, sessionKey));
-        value = asymmetricCrypto.DecryptStringSymmetric((String) ois.readObject() , sessionKey);
+        oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(certificate.getEncoded(), sessionKey));
+        String cn = certificate.getSubjectX500Principal().toString().split(",")[0];
+        oos.writeObject(asymmetricCrypto.EncryptStringSymmetric(cn, sessionKey));
+        value = asymmetricCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
         System.out.println("VALUE : " + value);
-       
-        if(("true").equals(value)) {
-        	isGood = true;
-        	System.out.println("IS GOOD : " + isGood);
-        } 
-        
-    	return isGood;
+
+        if (("true").equals(value)) {
+            isGood = true;
+            System.out.println("IS GOOD : " + isGood);
+        }
+
+        return isGood;
     }
 
     protected static void alert(String message) {
@@ -360,12 +355,12 @@ public class SignInController {
         sr.nextBytes(salt);
         return salt;
     }
-    
+
     private String cipher(String password) {
         return DigestUtils.sha256Hex(password);
     }
-    
-    protected  PrivateKey getPrivateKey() {
-    	return privateKey;
+
+    protected PrivateKey getPrivateKey() {
+        return privateKey;
     }
 }
