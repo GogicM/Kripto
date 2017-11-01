@@ -47,6 +47,8 @@ import controllers.SignInController;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -60,10 +62,13 @@ public class ServerThread extends Thread {
     private PublicKey publicKey;
     private KeyGenerator keyGenerator;
     private SecretKey sessionKey;
+    //public static SecretKey sessionKey;
     private Crypto aCrypto;
+    //public static Crypto aCrypto;
     private static String userName;
     private String password;
     private static final String PATH = "src/server/users/";
+
     public ServerThread(Socket socket) {
         try {
             this.socket = socket;
@@ -79,103 +84,106 @@ public class ServerThread extends Thread {
     public void run() {
         try {
             while (true) {
-            	
+
                 Object obj = ois.readObject();
-                
+
                 if (obj instanceof PublicKey) {
                     publicKey = (PublicKey) obj;
-                    keyGenerator = KeyGenerator.getInstance("AES");
+                    keyGenerator = KeyGenerator.getInstance("DES");
                     sessionKey = keyGenerator.generateKey();
                     byte[] sessionKeyEnc = aCrypto.AsymmetricFileEncription(sessionKey.getEncoded(), publicKey);
                     oos.writeObject(sessionKeyEnc);
                 }
-                
-                if (obj instanceof String  /* && aCrypto.verifyDigitalSignature(data, signature, publicKey) */) {
+
+                if (obj instanceof String /* && aCrypto.verifyDigitalSignature(data, signature, publicKey) */) {
                     String option = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                     if ("login".equals(option)) {
                         userName = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                         password = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                         //login response
-                        
+
                         boolean login = loginCheck(userName, password);
                         if (login) {
-                            oos.writeObject(loginCheck(userName, password));	
-                        } 
+                            oos.writeObject(loginCheck(userName, password));
+                        }
                     }
-                    
-                   if("cert".equals(option)) {
 
-                       byte[] receivedCertificate = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
+                    if ("cert".equals(option)) {
 
-                       CertificateFactory cFactory = CertificateFactory.getInstance("X.509");
+                        byte[] receivedCertificate = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
 
-                       InputStream in = new ByteArrayInputStream(receivedCertificate);
+                        CertificateFactory cFactory = CertificateFactory.getInstance("X.509");
 
-                       X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
-                       //System.out.println(certificate.toString());
-                       String cn = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                       System.out.println("CCCCCCCCNNNNNN : " + cn);
-                       if(cn.equals(certificate.getSubjectX500Principal().toString().split(",")[0])) {
-                           System.out.println("CCCCCCCCNNNNNN : " + cn);
+                        InputStream in = new ByteArrayInputStream(receivedCertificate);
 
-                    	   oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
-                           System.out.println("CCCCCCCCNNNNNN : " + cn);
+                        X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
+                        //System.out.println(certificate.toString());
+                        String cn = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                        System.out.println("CCCCCCCCNNNNNN : " + cn);
+                        if (cn.equals(certificate.getSubjectX500Principal().toString().split(",")[0])) {
+                            System.out.println("CCCCCCCCNNNNNN : " + cn);
 
-                       }
-                       else {
-                    	   oos.writeObject(aCrypto.EncryptStringSymmetric("false", sessionKey));
-                       }
-                       //cert check
-                   //    oos.writeObject(checkCertificate(certificate));
-                   }
-                   //for new adding new file to file system
-                   if("newFile".equals(option)) {
-                	   changeFileWatcher(userName);
-                   }
-                   //for sending files to client
-                   if("download".equals(option)) {
-                	   
-                   }
-                   //for sending list of files 
-                   System.out.println("OPTION ispod certa : " + option);
+                            oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
+                            System.out.println("CCCCCCCCNNNNNN : " + cn);
 
-                   if("get".equals(option)) {
-                	   System.out.println("OPCIJA " + option);
-                	   String[] fileNames = getFileNames(PATH + userName);
-                	   String[] cFileNames = new String[fileNames.length];
-                	   System.out.println("FILE NAMES SERVER : " + cFileNames.toString());
-                	   for(int i = 0; i < fileNames.length; i++) {
-                		   cFileNames[i] = aCrypto.EncryptStringSymmetric(fileNames[i], sessionKey);
-                	   }
-                	   oos.writeObject(cFileNames);
-                   }
-                   //for editing file on server
-                   if("modify".equals(option)) {
-                	   
-                	  // String data = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                	 //  System.out.println("DATA : " + data);
-                	   String fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                	   File f = new File("src/server/users/" + userName + "/" + aCrypto.EncryptStringSymmetric(fileName  , sessionKey));
-                	   System.out.println("FILE NAME : " + f.getAbsolutePath());
-                	   System.out.println("FILE NAME : " + f.getName());
+                        } else {
+                            oos.writeObject(aCrypto.EncryptStringSymmetric("false", sessionKey));
+                        }
+                        //cert check
+                        //    oos.writeObject(checkCertificate(certificate));
+                    }
+                    //for new adding new file to file system
+                    if ("newFile".equals(option)) {
+                        changeFileWatcher(userName);
+                    }
+                    //for sending files to client
+                    if ("download".equals(option)) {
+
+                    }
+                    //for sending list of files 
+                    System.out.println("OPTION ispod certa : " + option);
+
+                    if ("get".equals(option)) {
+                        System.out.println("OPCIJA " + option);
+                        String[] fileNames = getFileNames(PATH + userName);
+                        
+                        String[] cFileNames = new String[fileNames.length];
+//                        System.out.println("FILE NAMES SERVER : " + aCrypto.DecryptStringSymmetric(fileNames[0], sessionKey));
+                        for (int i = 0; i < fileNames.length; i++) {
+                            cFileNames[i] = aCrypto.DecryptStringSymmetric(fileNames[i], sessionKey);
+                        }
+                        oos.writeObject(fileNames);
+                    }
+                    //for editing file on server
+                    if ("modify".equals(option)) {
+
+                        // String data = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                        //  System.out.println("DATA : " + data);
+                        String fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                        System.out.println("FILE NAME SERVER POSLAN IS UPANEL CONTROLLERA : " + fileName);
+                        String cFileName = aCrypto.EncryptStringSymmetric(fileName, sessionKey);
+                        File f = new File("src/server/users/" + userName + "/" + cFileName);
+                        System.out.println("FILE NAME server thread absolute path: " + f.getAbsolutePath());
+                        System.out.println("FILE NAME server thread : " + f.getName());
 //                	   	f.mkdir();
-                	   if(!f.exists()) {
-                		   System.out.println("FILE CREATED!");
-                		   f.createNewFile();
-                	   }
-                	   byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
-                	   aCrypto.writeToFile(f, file, sessionKey);
-                	   changeFileWatcher(userName);
-                   }
-                   if("logs".equals(option)) {
-                	  oos.writeObject(aCrypto.SymmetricFileEncryption(getLog(userName), sessionKey)); 
-                   }
-                   if(("content").equals(option)) {
-                	   String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                	   System.out.println("PATH " + path);
-                	   String content = getFileContent(path);
-                	   oos.writeObject(aCrypto.EncryptStringSymmetric(content, sessionKey));
-                   }
+                        System.out.println("DEKRIPTOVAN FILENAME ST : " + aCrypto.DecryptStringSymmetric(f.getName(), sessionKey));
+                        if (!f.exists()) {
+                            System.out.println("FILE CREATED!");
+                            f.createNewFile();
+                        }
+                        byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
+                        aCrypto.writeToFile(f, file, sessionKey);
+                        changeFileWatcher(userName);
+                    }
+                    if ("logs".equals(option)) {
+                        oos.writeObject(aCrypto.SymmetricFileEncryption(getLog(userName), sessionKey));
+                    }
+                    if (("content").equals(option)) {
+                        String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+                        System.out.println("PATH " + path);
+                        String content = getFileContent(path);
+                        oos.writeObject(aCrypto.EncryptStringSymmetric(content, sessionKey));
+                    }
                 }
             }
 
@@ -196,7 +204,7 @@ public class ServerThread extends Thread {
                 String pass = line.split("#")[1];
 
                 if (userName.equals(uName) && password.equals(pass)) {
-                   
+
                     login = true;
 
                     break;
@@ -214,67 +222,78 @@ public class ServerThread extends Thread {
 
         return active;
     }
-    
-	private String[] getFileNames(String path) {
-		
-		
-		File folder = new File(path + "/");
-		File[] files = folder.listFiles();
-		System.out.println("PATH : " + path);
-		System.out.println(" List of files : " + files.length + " " + files.toString());
 
-		String[] fileNames = new String[files.length];
-		int j = 0;
-		
-		for(int i = 0; i < files.length; i++) {
-			if(files[i].isFile()) {
-				fileNames[j] = files[i].getName();
-				j++;
-			}
-		}
-		return fileNames;
-	}
-	
-	/* 
+    private String[] getFileNames(String path) {
+
+        File folder = new File(path + "/");
+        File[] files = folder.listFiles();
+        System.out.println("PATH : " + path);
+//        try {
+//            System.out.println(" List of files : " + files.length + " " + files[1].getName());
+//
+//            System.out.println(" List of files : " + files.length + " " + aCrypto.DecryptStringSymmetric(files[1].getName(), sessionKey));
+//        } catch (InvalidKeyException ex) {
+//            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (IllegalBlockSizeException ex) {
+//            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (BadPaddingException ex) {
+//            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (IOException ex) {
+//            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+
+        String[] fileNames = new String[files.length];
+        int j = 0;
+
+        for (int i = 0; i < files.length; i++) {
+            if (files[i].isFile()) {
+                fileNames[j] = files[i].getName();
+                j++;
+            }
+        }
+        return fileNames;
+    }
+
+    /* 
 	 * Method for tracking changes on user files, and for log creation
 	 *
 	 **/
-	private void changeFileWatcher(String uName) {
-		
-		Path path = Paths.get("src/server/users/");
-		try {
-			File logs = new File("src/server/Logs" + uName + "Log");
-			//BufferedWriter bw = new BufferedWriter(new FileWriter(logs, true));
-			if(!logs.exists()) {
-				logs.createNewFile();
-			}
-			WatchService watcher = path.getFileSystem().newWatchService();
-			path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, 
-					StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE);
-			
-			WatchKey key = watcher.take();
-			
-			List<WatchEvent<?>> events = key.pollEvents();
-			byte[] text = null;
-			for(WatchEvent event : events) {
-				if(event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-		            text = ("\n" + LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
+    private void changeFileWatcher(String uName) {
+
+        Path path = Paths.get("src/server/users/");
+        try {
+            File logs = new File("src/server/Logs" + uName + "Log");
+            //BufferedWriter bw = new BufferedWriter(new FileWriter(logs, true));
+            if (!logs.exists()) {
+                logs.createNewFile();
+            }
+            WatchService watcher = path.getFileSystem().newWatchService();
+            path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE);
+
+            WatchKey key = watcher.take();
+
+            List<WatchEvent<?>> events = key.pollEvents();
+            byte[] text = null;
+            for (WatchEvent event : events) {
+                if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                    text = ("\n" + LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
 
 //					bw.append(" ");
 //					bw.append(LocalDateTime.now() + " user " + uName + " " + event.context().toString());
-				}
-				if(event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                }
+                if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
 //					bw.append(" ");
-			//		bw.append(LocalDateTime.now() + " user " + uName + " " + event.context().toString());
-		            text = (LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
+                    //		bw.append(LocalDateTime.now() + " user " + uName + " " + event.context().toString());
+                    text = (LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
 
-				}				
-				if(event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+                }
+                if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
 //					bw.append(" ");
-		            text = (LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
-				}
-				
-				aCrypto.writeToFile(logs, text, sessionKey);
+                    text = (LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
+                }
+
+                aCrypto.writeToFile(logs, text, sessionKey);
 //				byte[] bytesLogsEnc = aCrypto.SymmetricFileEncryption(text, sessionKey);
 //				
 //				BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(logs, true));
@@ -286,109 +305,108 @@ public class ServerThread extends Thread {
 //				BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(logs));
 //			    bufferedInputStream.read(bytesLogs);
 //			    bufferedInputStream.close();
+                //aCrypto.SymmetricFileEncryption(logs, sessionKey);
+            }
 
-				//aCrypto.SymmetricFileEncryption(logs, sessionKey);
-			}
-			
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private byte[] getLog(String uName) throws IOException {
-		
-		File f = new File("src/server/" + uName + "Logs");
-		if(!f.exists()) {
-			f.createNewFile();
-		}
-		byte[] file = new byte[(int) f.length()];
-		FileInputStream  fin = new FileInputStream(f);
-		
-		fin.read(file);
-		try {
-			byte[] fileDec = aCrypto.SymmetricFileDecription(file, sessionKey);
-			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		finally {
-			fin.close();
-		}
-		return file; 
-	}
-	
-	public static String getUserName() {
-		return userName;
-	}
-	
-	private boolean makeNewFile(String path, String data) throws IOException, GeneralSecurityException, 
-		IllegalBlockSizeException, BadPaddingException {
-	
-		boolean isCreated = false;
-	
-		File file = new File(aCrypto.EncryptStringSymmetric(path, sessionKey));
-		if(!file.exists()) {
-			file.createNewFile();
-			aCrypto.writeToFile(file, data.getBytes(), sessionKey);
-			isCreated = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private byte[] getLog(String uName) throws IOException {
+
+        File f = new File("src/server/" + uName + "Logs");
+        if (!f.exists()) {
+            f.createNewFile();
+        }
+        byte[] file = new byte[(int) f.length()];
+        FileInputStream fin = new FileInputStream(f);
+
+        fin.read(file);
+        try {
+            byte[] fileDec = aCrypto.SymmetricFileDecription(file, sessionKey);
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } finally {
+            fin.close();
+        }
+        return file;
+    }
+
+    public static String getUserName() {
+        return userName;
+    }
+
+    private boolean makeNewFile(String path, String data) throws IOException, GeneralSecurityException,
+            IllegalBlockSizeException, BadPaddingException {
+
+        boolean isCreated = false;
+
+        File file = new File(aCrypto.EncryptStringSymmetric(path, sessionKey));
+        if (!file.exists()) {
+            file.createNewFile();
+            aCrypto.writeToFile(file, data.getBytes(), sessionKey);
+            isCreated = true;
 //			BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
-			
-			//bw.append(" ");
+
+            //bw.append(" ");
 //			bw.write(data);
 //			bw.close();
-		}
-	
-		return isCreated;
-	}
-	
-	private String getFileContent(String pathToFile) throws IOException {
-	
-    StringBuilder sb = new StringBuilder();
-	String line;
-	String content = "";
-	File file = new File(pathToFile);
+        }
+
+        return isCreated;
+    }
+
+    private String getFileContent(String pathToFile) throws IOException {
+
+        StringBuilder sb = new StringBuilder();
+        String line;
+        String content = "";
+        File file = new File(pathToFile);
 //	BufferedReader br = new BufferedReader(new FileReader(file));
 //		while((line = br.readLine()) != null) {
 //			sb.append(line);
 //	        sb.append(System.lineSeparator());
 //		}
-		try {
-			FileInputStream fin = null;
-				// create FileInputStream object
-			fin = new FileInputStream(file);
+        try {
+            FileInputStream fin = null;
+            // create FileInputStream object
+            fin = new FileInputStream(file);
 
-			byte fileContent[] = new byte[(int)file.length()];
-				
-				// Reads up to certain bytes of data from this input stream into an array of bytes.
-			fin.read(fileContent);
-			//create string from byte array
-			//byte[] array = aCrypto.SymmetricFileDecription(fileContent, sessionKey);
-			String s = new String(fileContent, StandardCharsets.UTF_16);
-			System.out.println("File content: " + s);
+            byte fileContent[] = new byte[(int) file.length()];
 
-			content = aCrypto.DecryptStringSymmetric(s, sessionKey);
+            // Reads up to certain bytes of data from this input stream into an array of bytes.
+            fin.read(fileContent);
+            //create string from byte array
+            byte[] array = aCrypto.SymmetricFileDecription(fileContent, sessionKey);
+            String s = new String(array, StandardCharsets.UTF_16);
+            System.out.println("File content: " + s);
 
-			System.out.println(aCrypto.DecryptStringSymmetric(content, sessionKey));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		//br.close();
-		return content;
-	}
-	//helper method to convert Object to byte array
+           // content = aCrypto.DecryptStringSymmetric(s, sessionKey);
+           content += s;
+            System.out.println("CONTENT : " + content);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        //br.close();
+        return content;
+    }
+    //helper method to convert Object to byte array
+
     private static byte[] serialize(Object obj) throws IOException {
-        try(ByteArrayOutputStream b = new ByteArrayOutputStream()){
-            try(ObjectOutputStream o = new ObjectOutputStream(b)){
+        try (ByteArrayOutputStream b = new ByteArrayOutputStream()) {
+            try (ObjectOutputStream o = new ObjectOutputStream(b)) {
                 o.writeObject(obj);
             }
             return b.toByteArray();
         }
     }
-    
+
     public static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
-        try(ByteArrayInputStream b = new ByteArrayInputStream(bytes)){
-            try(ObjectInputStream o = new ObjectInputStream(b)){
+        try (ByteArrayInputStream b = new ByteArrayInputStream(bytes)) {
+            try (ObjectInputStream o = new ObjectInputStream(b)) {
                 return o.readObject();
             }
         }
