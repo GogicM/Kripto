@@ -1,5 +1,8 @@
+/certificates/
 /controllers/
 /crypto/
+/fxml/
+/keys/
 /securedatastorage/
-/users/
 /server/
+/users/

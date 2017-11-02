@@ -147,12 +147,12 @@ public class ServerThread extends Thread {
                         System.out.println("OPCIJA " + option);
                         String[] fileNames = getFileNames(PATH + userName);
                         
-                        String[] cFileNames = new String[fileNames.length];
-//                        System.out.println("FILE NAMES SERVER : " + aCrypto.DecryptStringSymmetric(fileNames[0], sessionKey));
-                        for (int i = 0; i < fileNames.length; i++) {
-                            cFileNames[i] = aCrypto.DecryptStringSymmetric(fileNames[i], sessionKey);
-                        }
-                        oos.writeObject(fileNames);
+//                        String[] cFileNames = new String[fileNames.length];
+//                        for (int i = 0; i < fileNames.length; i++) {
+//                            cFileNames[i] = aCrypto.DecryptStringSymmetric(fileNames[i], sessionKey);
+//                        }
+                        
+                        oos.writeObject(aCrypto.EncryptStringArraySymmetric(fileNames, sessionKey));
                     }
                     //for editing file on server
                     if ("modify".equals(option)) {
@@ -162,16 +162,16 @@ public class ServerThread extends Thread {
                         String fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
                         System.out.println("FILE NAME SERVER POSLAN IS UPANEL CONTROLLERA : " + fileName);
                         String cFileName = aCrypto.EncryptStringSymmetric(fileName, sessionKey);
-                        File f = new File("src/server/users/" + userName + "/" + cFileName);
+                        File f = new File("src/server/users/" + userName + "/" + fileName);
                         System.out.println("FILE NAME server thread absolute path: " + f.getAbsolutePath());
                         System.out.println("FILE NAME server thread : " + f.getName());
 //                	   	f.mkdir();
-                        System.out.println("DEKRIPTOVAN FILENAME ST : " + aCrypto.DecryptStringSymmetric(f.getName(), sessionKey));
                         if (!f.exists()) {
-                            System.out.println("FILE CREATED!");
                             f.createNewFile();
+                            System.out.println("FILE CREATED!");
                         }
                         byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
+                        System.out.println("FILE CONTENT :  " + new String(file));
                         aCrypto.writeToFile(f, file, sessionKey);
                         changeFileWatcher(userName);
                     }
@@ -381,7 +381,7 @@ public class ServerThread extends Thread {
             fin.read(fileContent);
             //create string from byte array
             byte[] array = aCrypto.SymmetricFileDecription(fileContent, sessionKey);
-            String s = new String(array, StandardCharsets.UTF_16);
+            String s = new String(array);
             System.out.println("File content: " + s);
 
            // content = aCrypto.DecryptStringSymmetric(s, sessionKey);

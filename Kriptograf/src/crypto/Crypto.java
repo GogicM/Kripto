@@ -170,8 +170,8 @@ public class Crypto {
             IOException, InvalidKeyException, NoSuchAlgorithmException {
         
         FileOutputStream fos = new FileOutputStream(output);
-        byte[] encContent = SymmetricFileEncryption(data, key);
-        fos.write(encContent);
+       // byte[] encContent = SymmetricFileEncryption(data, key);
+        fos.write(data);
         fos.flush();
         fos.close();
     }
@@ -209,6 +209,46 @@ public class Crypto {
 //        return decryptedData;
           return new String(symmCipher.doFinal(Base64.getDecoder().decode(message)));
     }
+    
+    /*
+    	Method for string array  encryption with symmetric algorithm
+    */
+    public String[] EncryptStringArraySymmetric(String[] array, SecretKey key)
+    		throws InvalidKeyException, IllegalBlockSizeException,
+    		BadPaddingException {
+
+    	String[] encryptedArray = new String[array.length];
+    	this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
+    	// final byte[] encryptedDataBytes = symmCipher.doFinal(message.getBytes());
+    	// encryptedData = new BASE64Encoder().encode(encryptedDataBytes);
+
+    	//    return encryptedData;
+    	for(int i = 0; i < array.length; i++) {
+    		encryptedArray[i] = Base64.getEncoder().encodeToString(symmCipher.doFinal(array[i].getBytes()));
+    	}
+    	return encryptedArray;
+
+    }
+
+	/*
+	    Method for decription of string array encrypted with symmetric algorithm
+	*/
+	public String[] DecryptStringArraySymmetric(String[] encryptedArray, SecretKey key)
+	    throws InvalidKeyException, IllegalBlockSizeException,
+	    BadPaddingException, IOException {
+	
+		String[] decryptedArray = new String[encryptedArray.length];
+		
+		this.symmCipher.init(Cipher.DECRYPT_MODE, key);
+		//final byte[] decryptedDataBytes = symmCipher.doFinal(new BASE64Decoder().decodeBuffer(message));
+		//decryptedData = new String(decryptedDataBytes);
+		//
+		//return decryptedData;
+		for(int i = 0; i < encryptedArray.length; i++) {
+			decryptedArray[i] = new String(symmCipher.doFinal(Base64.getDecoder().decode(encryptedArray[i])));
+		}
+		return decryptedArray;
+	}
 
     public String EncryptStringAsymmetric(String message, PrivateKey key)
             throws InvalidKeyException, IllegalBlockSizeException,
