@@ -196,7 +196,7 @@ public class UserPanelController {
 
                 e.printStackTrace();
             }
-            System.out.println("FILE NAMES USER PANEL CONTROLLER : " + fileNames[0]);
+            //System.out.println("FILE NAMES USER PANEL CONTROLLER : " + fileNames[0]);
 
     //    }
 //		File folder = new File(path);

@@ -170,7 +170,7 @@ public class Crypto {
             IOException, InvalidKeyException, NoSuchAlgorithmException {
         
         FileOutputStream fos = new FileOutputStream(output);
-       // byte[] encContent = SymmetricFileEncryption(data, key);
+        byte[] encContent = SymmetricFileEncryption(data, key);
         fos.write(data);
         fos.flush();
         fos.close();
@@ -216,7 +216,10 @@ public class Crypto {
     public String[] EncryptStringArraySymmetric(String[] array, SecretKey key)
     		throws InvalidKeyException, IllegalBlockSizeException,
     		BadPaddingException {
-
+    	
+    	if(array == null) {
+    		System.out.println("ARRAY IS NULL");
+    	}
     	String[] encryptedArray = new String[array.length];
     	this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
     	// final byte[] encryptedDataBytes = symmCipher.doFinal(message.getBytes());
@@ -278,7 +281,7 @@ public class Crypto {
         return certificate;
     }
 
-    private String encodeWithSHA256(String message) throws NoSuchAlgorithmException {
+    public String encodeWithSHA256(String message) throws NoSuchAlgorithmException {
 
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(message.getBytes(StandardCharsets.UTF_8));
