@@ -28,6 +28,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,7 @@ public class ServerThread extends Thread {
                     publicKey = (PublicKey) obj;
                     keyGenerator = KeyGenerator.getInstance("DESede");
                     sessionKey = keyGenerator.generateKey();
+                    System.out.println("SESSION KEY : " + Base64.getEncoder().encodeToString(sessionKey.getEncoded()));
                     byte[] sessionKeyEnc = aCrypto.AsymmetricFileEncription(sessionKey.getEncoded(), publicKey);
                     oos.writeObject(sessionKeyEnc);
                 }
@@ -104,11 +106,18 @@ public class ServerThread extends Thread {
                         if (login) {
                             oos.writeObject(loginCheck(userName, password));
                         }
+                        //test
                         String test = "Test symmetric file enc / dec";
+                        File fileTest = new File("src/server/testFileEnc");
+                        if(!fileTest.exists()) {
+                        	fileTest.createNewFile();
+                        }
+                        aCrypto.writeToFile(fileTest, test.getBytes(), sessionKey);
                         byte[] tesT = aCrypto.SymmetricFileEncryption(test.getBytes(), sessionKey);
-                        System.out.println("IZ SERVER KONSTRUKTORA KRIPTOVAN " + new String(tesT));
-                        String test2 = new String(aCrypto.SymmetricFileDecription(tesT, sessionKey));
-                        System.out.println("IZ SERVER KONSTRUKTORA DEKRIPTOVAN: " + test2);
+                        String decryptedFromFile = new String(aCrypto.readFromFile(fileTest, sessionKey));
+//                        System.out.println("IZ SERVER KONSTRUKTORA KRIPTOVAN " + new String(tesT));
+//                        String test2 = new String(aCrypto.SymmetricFileDecription(tesT, sessionKey));
+                        System.out.println("DECRYPTED DATA : " + decryptedFromFile);
 
                     }
 
@@ -174,8 +183,9 @@ public class ServerThread extends Thread {
                         }
                         byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
                         System.out.println("FILE CONTENT :  " + new String(file));
+                        String s = new String(file);
                        // String encContent = aCrypto.EncryptStringSymmetric(new String(file), sessionKey);
-                        aCrypto.writeToFile(f, file, sessionKey);
+                        aCrypto.writeToFile(f, s.getBytes(), sessionKey);
                         oos.writeObject(aCrypto.EncryptStringSymmetric(((f.exists()) ? "true" : "false"), sessionKey));
                         changeFileWatcher(userName);
                     }

@@ -162,7 +162,7 @@ public class Crypto {
         
         FileOutputStream fos = new FileOutputStream(output);
         byte[] encContent = SymmetricFileEncryption(data, key);
-        System.out.println("KRIPTOVAN : + " + new String(encContent));
+        System.out.println("ENCRYPTED DATA:  " + new String(encContent));
         fos.write(encContent);
         fos.flush();
         fos.close();
@@ -213,11 +213,7 @@ public class Crypto {
 
         String encryptedData = null;
         this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
-       // final byte[] encryptedDataBytes = symmCipher.doFinal(message.getBytes());
-       // encryptedData = new BASE64Encoder().encode(encryptedDataBytes);
-
-    //    return encryptedData;
-            return Base64.getEncoder().encodeToString(symmCipher.doFinal(message.getBytes()));
+        return Base64.getEncoder().encodeToString(symmCipher.doFinal(message.getBytes()));
 
     }
 
