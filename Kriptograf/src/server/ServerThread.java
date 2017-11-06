@@ -39,6 +39,10 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.security.InvalidKeyException;
+import java.security.PrivateKey;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  *
@@ -52,18 +56,25 @@ public class ServerThread extends Thread {
     private PublicKey publicKey;
     private KeyGenerator keyGenerator;
     private SecretKey sessionKey;
+    private SecretKey serverSecretKey;
     //public static SecretKey sessionKey;
     private Crypto aCrypto;
     //public static Crypto aCrypto;
     private static String userName;
     private String password;
+    private String[] fileNames;
     private static final String PATH = "src/server/users/";
     private File hashMapSer = new File("src/server/hashMap.ser");
     /*
      * Hash map in which we will store real file names with hash of file names as key - value pair
      */
     private Map<String, String> fileNamesMap = new HashMap<String, String>();
+    /*
+     * Hash map in which we will store real file names with file content for sending user
+     */
+    private Map<String, String> filesForUserMap = new HashMap<String, String>();
     private String fileName = null;
+    private PrivateKey privateKey;
 
     public ServerThread(Socket socket) {
         try {
@@ -88,7 +99,8 @@ public class ServerThread extends Thread {
 
                 if (obj instanceof PublicKey) {
                     publicKey = (PublicKey) obj;
-                    keyGenerator = KeyGenerator.getInstance("DESede");
+                    keyGenerator = KeyGenerator.getInstance("AES");
+                    keyGenerator.init(128);
                     sessionKey = keyGenerator.generateKey();
                     System.out.println("SESSION KEY : " + Base64.getEncoder().encodeToString(sessionKey.getEncoded()));
                     byte[] sessionKeyEnc = aCrypto.AsymmetricFileEncription(sessionKey.getEncoded(), publicKey);
@@ -101,22 +113,31 @@ public class ServerThread extends Thread {
                         userName = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                         password = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
                         //login response
-
                         boolean login = loginCheck(userName, password);
                         if (login) {
                             oos.writeObject(loginCheck(userName, password));
                         }
+                        privateKey = aCrypto.getPrivateKey("src/keys/" + userName + "DER.key");
+                        File keyFile = new File("src/server/serverSessionKey");
+                        keyFile.setReadOnly();
+                        if (!keyFile.exists()) {
+                            serverSecretKey = keyGenerator.generateKey();
+                            System.out.println("SERVER SECRET KEY : " + Base64.getEncoder().encodeToString(serverSecretKey.getEncoded()));
+                            writeKeyToFile(keyFile, serverSecretKey);
+                        } else {
+                            serverSecretKey = readKeyFromFile(keyFile, privateKey);
+                            System.out.println("SERVER SECRET KEY FROM FILE : " + Base64.getEncoder().encodeToString(serverSecretKey.getEncoded()));
+                        }
+
                         //test
+                        System.out.println("SIZE OF AES KEY : " + sessionKey.getEncoded().length);
                         String test = "Test symmetric file enc / dec";
                         File fileTest = new File("src/server/testFileEnc");
-                        if(!fileTest.exists()) {
-                        	fileTest.createNewFile();
+                        if (!fileTest.exists()) {
+                            fileTest.createNewFile();
                         }
-                        aCrypto.writeToFile(fileTest, test.getBytes(), sessionKey);
-                        byte[] tesT = aCrypto.SymmetricFileEncryption(test.getBytes(), sessionKey);
-                        String decryptedFromFile = new String(aCrypto.readFromFile(fileTest, sessionKey));
-//                        System.out.println("IZ SERVER KONSTRUKTORA KRIPTOVAN " + new String(tesT));
-//                        String test2 = new String(aCrypto.SymmetricFileDecription(tesT, sessionKey));
+                        aCrypto.writeToFile(fileTest, test.getBytes(), serverSecretKey);
+                        String decryptedFromFile = new String(aCrypto.readFromFile(fileTest, serverSecretKey));
                         System.out.println("DECRYPTED DATA : " + decryptedFromFile);
 
                     }
@@ -152,8 +173,7 @@ public class ServerThread extends Thread {
                     //for sending list of files 
                     if ("get".equals(option)) {
                         System.out.println("OPCIJA " + option);
-                        String[] fileNames = getFileNames(PATH + userName);
-                        //System.out.println("FILE NAME SA SERVERA : " + fileNames[0]);
+                        fileNames = getFileNames(PATH + userName);
                         String[] realFileNames = new String[fileNames.length];
                         for (int i = 0; i < fileNames.length; i++) {
                             realFileNames[i] = fileNamesMap.get(fileNames[i]);
@@ -178,14 +198,14 @@ public class ServerThread extends Thread {
                             f.createNewFile();
                             System.out.println("FILE CREATED!");
                             fileNamesMap.put(formatedEncFileName, fileName);
-                            serialize(fileNamesMap);
+                            serialize(fileNamesMap, "src/server/hashMap.ser");
                             System.out.println("MAP VALUE FOR " + fileNamesMap.get(formatedEncFileName));
                         }
                         byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
                         System.out.println("FILE CONTENT :  " + new String(file));
                         String s = new String(file);
-                       // String encContent = aCrypto.EncryptStringSymmetric(new String(file), sessionKey);
-                        aCrypto.writeToFile(f, s.getBytes(), sessionKey);
+                        // String encContent = aCrypto.EncryptStringSymmetric(new String(file), sessionKey);
+                        aCrypto.writeToFile(f, s.getBytes(), serverSecretKey);
                         oos.writeObject(aCrypto.EncryptStringSymmetric(((f.exists()) ? "true" : "false"), sessionKey));
                         changeFileWatcher(userName);
                     }
@@ -200,18 +220,26 @@ public class ServerThread extends Thread {
                     }
                     if (("edit").equals(option)) {
                         fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        byte[] content = aCrypto.readFromFile(new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4])), sessionKey);
-                        String fileContent = aCrypto.DecryptStringSymmetric(new String(content), sessionKey);
-                        oos.writeObject(aCrypto.EncryptStringSymmetric(fileContent, sessionKey));
+                        byte[] content = aCrypto.readFromFile(new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4])), serverSecretKey);
+                       // String fileContent = aCrypto.DecryptStringSymmetric(new String(content), sessionKey);
+                       String fileContent = new String(content); 
+                       oos.writeObject(aCrypto.EncryptStringSymmetric(fileContent, sessionKey));
                         System.out.println("NAME FROM SERVER IN EDIT : " + fileName);
                     }
                     if (("modify").equals(option)) {
                         String editedFileContent = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        System.out.println("NAME FROM SERVER IN MODIFY: " + fileName);
-                        String encrytedFileContent = aCrypto.EncryptStringSymmetric(editedFileContent, sessionKey);
+                        System.out.println("NAME FROM SERVER IN MODIFY: " + fileName + "EDITED FILE CONTENT " + editedFileContent);
+                        //String encrytedFileContent = aCrypto.EncryptStringSymmetric(editedFileContent, sessionKey);
                         File f = new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4]));
-                        aCrypto.writeToFile(f, encrytedFileContent.getBytes(), sessionKey);
+                        aCrypto.writeToFile(f, editedFileContent.getBytes(), serverSecretKey);
                         oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
+                    }
+                    if(("download").equals(option)) {
+                        for(int i = 0; i < fileNames.length; i++) {
+                            //Adding file name and file content to map
+                            String fileContentForUser = new String(aCrypto.readFromFile(new File(fileNames[i]), serverSecretKey));
+                            fileNamesMap.put(fileNamesMap.get(fileNames[i]), fileContentForUser);
+                        }
                     }
                 }
             }
@@ -272,7 +300,7 @@ public class ServerThread extends Thread {
     /* 
     * Method for tracking changes on user files, and for log creation
     *
-    */
+     */
     private void changeFileWatcher(String uName) {
 
         Path path = Paths.get("src/server/users/");
@@ -300,7 +328,7 @@ public class ServerThread extends Thread {
                     text = (LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
                 }
 
-                aCrypto.writeToFile(logs, text, sessionKey);
+                aCrypto.writeToFile(logs, text, serverSecretKey);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -341,7 +369,7 @@ public class ServerThread extends Thread {
         File file = new File(aCrypto.EncryptStringSymmetric(path, sessionKey));
         if (!file.exists()) {
             file.createNewFile();
-            aCrypto.writeToFile(file, data.getBytes(), sessionKey);
+            aCrypto.writeToFile(file, data.getBytes(), serverSecretKey);
             isCreated = true;
 //			BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
 
@@ -384,8 +412,8 @@ public class ServerThread extends Thread {
     }
     //helper method to convert Object to byte array
 
-    private void serialize(Object obj) throws IOException {
-        File f = new File("src/server/hashMap.ser");
+    private void serialize(Object obj, String path) throws IOException {
+        File f = new File(path);
         if (!f.exists()) {
             f.createNewFile();
         }
@@ -440,5 +468,29 @@ public class ServerThread extends Thread {
         }
         System.out.println("KEY FROM VALU: " + key);
         return key;
+    }
+
+    private void writeKeyToFile(File file, SecretKey key) throws IOException,
+            BadPaddingException, InvalidKeyException,
+            IllegalBlockSizeException {
+
+        byte[] encSessionKey = aCrypto.AsymmetricFileEncription(key.getEncoded(), publicKey);
+        FileOutputStream fos = new FileOutputStream(file);
+        fos.write(encSessionKey);
+        fos.flush();
+        fos.close();
+    }
+
+    private SecretKey readKeyFromFile(File keyFile, PrivateKey privateKey)
+            throws FileNotFoundException, IOException, GeneralSecurityException {
+
+        byte[] encSessionKey = new byte[(int) keyFile.length()];
+        FileInputStream fis = new FileInputStream(keyFile);
+        fis.read(encSessionKey);
+        fis.close();
+        byte[] sessionKey = aCrypto.AsymmetricFileDecription(encSessionKey, privateKey);
+        SecretKey secretKey = new SecretKeySpec(sessionKey, 0, sessionKey.length, "AES");
+
+        return secretKey;
     }
 }

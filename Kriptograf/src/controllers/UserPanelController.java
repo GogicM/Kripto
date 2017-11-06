@@ -36,10 +36,7 @@ public class UserPanelController {
     protected static ObservableList<String> data = FXCollections.observableArrayList();
     private String fileName;
     private String fileContent;
-//  private ObjectOutputStream oos;
-//  private ObjectInputStream ois;
     private Socket socket;
- // private Crypto crypto;
 
     private static final int PORT_NUMBER = 9999;
     @FXML
@@ -163,7 +160,10 @@ public class UserPanelController {
         }
 
     }
-
+    @FXML
+    protected void handleDownloadButton(ActionEvent event) {
+        
+    }
     private String[] getFileNames(String path) throws IOException, ClassNotFoundException,
             InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException {
@@ -189,15 +189,6 @@ public class UserPanelController {
         return fileNames;
     }
 
-    public void writeToFile(String path, String data) throws IOException {
-        File file = new File(path);
-        BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
-
-        //bw.append(" ");
-        bw.write(data);
-        bw.close();
-
-    }
 
     protected static void alert(String message) {
 

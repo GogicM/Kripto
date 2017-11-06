@@ -54,7 +54,7 @@ public class Crypto {
         this.asymmCipher = Cipher.getInstance("RSA");
         // this.asymmCipher.init(keylength);
         //Changed from CBC to ECB, had problems with iv for CBC
-        this.symmCipher = Cipher.getInstance("DESede/ECB/PKCS5Padding");
+        this.symmCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         //this.symmCipher = Cipher.getInstance("AES/ECB/NoPadding");
 
     }
@@ -193,12 +193,12 @@ public class Crypto {
 //    }
    public byte[] readFromFile(File input, SecretKey key)
             throws IllegalBlockSizeException, BadPaddingException, 
-            IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-       
+            IOException, InvalidKeyException, NoSuchAlgorithmException, 
+            InvalidAlgorithmParameterException, GeneralSecurityException {
+        
         byte[] fileContent = new byte[(int) input.length()];
         FileInputStream fis = new FileInputStream(input);
         fis.read(fileContent);
-       // fis.flush();
         fis.close();
         
         return SymmetricFileDecription(fileContent, key);

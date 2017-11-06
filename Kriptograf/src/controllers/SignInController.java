@@ -150,8 +150,9 @@ public class SignInController {
                     int length = asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey).length;
                     //sessionKey for symmetric encryption
                     sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
-                            0, length, "DESede");
+                            0, length, "AES");
                     System.out.println("SESSION KEY : " + Base64.getEncoder().encodeToString(sessionKey.getEncoded()));
+                    System.out.println("PUBLIC KEY : " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
                     //login went well, now client sends certificate				                 
 
                     boolean login;
