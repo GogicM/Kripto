@@ -150,7 +150,7 @@ public class SignInController {
                     int length = asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey).length;
                     //sessionKey for symmetric encryption
                     sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
-                            0, length, "DES");
+                            0, length, "DESede");
                     //login went well, now client sends certificate				                 
 
                     boolean login;

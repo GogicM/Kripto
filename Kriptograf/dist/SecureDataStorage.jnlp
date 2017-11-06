@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp spec="1.0" xmlns:jfx="http://javafx.com" href="SecureDataStorage.jnlp">
+  <information>
+    <title>SecureDataStorage</title>
+    <vendor>Milan</vendor>
+    <description>null</description>
+    <offline-allowed/>
+  </information>
+  <resources>
+    <j2se version="1.6+" href="http://java.sun.com/products/autodl/j2se"/>
+    <jar href="SecureDataStorage.jar" size="78540" download="eager" />
+    <jar href="lib\apache-commons-codec-1.4.jar" size="62704" download="eager" />
+    <jar href="lib\bcpkix-jdk15on-157.jar" size="775948" download="eager" />
+    <jar href="lib\bcprov-jdk15on-157.jar" size="3759724" download="eager" />
+  </resources>
+  <applet-desc  width="800" height="600" main-class="com.javafx.main.NoJavaFXFallback"  name="SecureDataStorage" >
+    <param name="requiredFXVersion" value="8.0+"/>
+  </applet-desc>
+  <jfx:javafx-desc  width="800" height="600" main-class="securedatastorage.SecureDataStorage"  name="SecureDataStorage" />
+  <update check="always"/>
+</jnlp>

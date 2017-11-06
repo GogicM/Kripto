@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -33,6 +34,8 @@ import javax.crypto.spec.IvParameterSpec;
 
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
@@ -51,7 +54,7 @@ public class Crypto {
         this.asymmCipher = Cipher.getInstance("RSA");
         // this.asymmCipher.init(keylength);
         //Changed from CBC to ECB, had problems with iv for CBC
-        this.symmCipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+        this.symmCipher = Cipher.getInstance("DESede/ECB/PKCS5Padding");
         //this.symmCipher = Cipher.getInstance("AES/ECB/NoPadding");
 
     }
@@ -153,27 +156,52 @@ public class Crypto {
     /*
 	        Method for write encrypted file
      */
-//	    public void writeToFile(File file, byte[] data, SecretKey key) throws IOException,
-//	            IllegalBlockSizeException, BadPaddingException, 
-//	            InvalidKeyException {
-//
-//	        FileOutputStream fos = new FileOutputStream(file, false);
-//	        this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
-//	        byte[] output = this.symmCipher.doFinal(data);
-//
-//	        fos.write(output);
-//	        fos.flush();
-//	        fos.close();
-//	    }
     public void writeToFile(File output, byte[] data, SecretKey key)
             throws IllegalBlockSizeException, BadPaddingException, 
             IOException, InvalidKeyException, NoSuchAlgorithmException {
         
         FileOutputStream fos = new FileOutputStream(output);
         byte[] encContent = SymmetricFileEncryption(data, key);
-        fos.write(data);
+        System.out.println("KRIPTOVAN : + " + new String(encContent));
+        fos.write(encContent);
         fos.flush();
         fos.close();
+    }
+    /*
+	        Method for read from file
+     */    
+//    public byte[] readFromFile(String path, SecretKey key) {
+//        byte[] data = null;
+//        byte[] encData = null;
+//        try {
+//            encData = Files.readAllBytes(new File(path).toPath());
+//            System.out.println("ENC STRING IN READ FROM FILE :" + new String(encData));
+//            data = SymmetricFileDecription(encData, key);
+//            System.out.println("IN READ FROM FILE STRING : " + new String(data));
+//       } catch (IOException ex) {
+//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (InvalidKeyException ex) {
+//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (IllegalBlockSizeException ex) {
+//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (BadPaddingException ex) {
+//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (InvalidAlgorithmParameterException ex) {
+//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//        return data;
+//    }
+   public byte[] readFromFile(File input, SecretKey key)
+            throws IllegalBlockSizeException, BadPaddingException, 
+            IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+       
+        byte[] fileContent = new byte[(int) input.length()];
+        FileInputStream fis = new FileInputStream(input);
+        fis.read(fileContent);
+       // fis.flush();
+        fis.close();
+        
+        return SymmetricFileDecription(fileContent, key);
     }
 
     /*
@@ -220,6 +248,9 @@ public class Crypto {
     	if(array == null) {
     		System.out.println("ARRAY IS NULL");
     	}
+        for(String s : array) {
+            System.out.println("NIZ : " + s);
+        }
     	String[] encryptedArray = new String[array.length];
     	this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
     	// final byte[] encryptedDataBytes = symmCipher.doFinal(message.getBytes());

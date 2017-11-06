@@ -1,33 +1,24 @@
 package controllers;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.security.InvalidKeyException;
-import java.security.PrivateKey;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 
-import crypto.Crypto;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -35,27 +26,22 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import javafx.stage.Window;
 import server.ServerThread;
 
 public class UserPanelController {
 
-    private static String PATH = "src/server/users/";
+    private static String PATH = "src/server/users";
 
-    private ObservableList<String> data = FXCollections.observableArrayList();
+    protected static ObservableList<String> data = FXCollections.observableArrayList();
     private String fileName;
     private String fileContent;
-//    private ObjectOutputStream oos;
-//    private ObjectInputStream ois;
+//  private ObjectOutputStream oos;
+//  private ObjectInputStream ois;
     private Socket socket;
-    // private Crypto crypto;
+ // private Crypto crypto;
 
     private static final int PORT_NUMBER = 9999;
-    //private PrivateKey privateKey = new SignInController().getPrivateKey();
     @FXML
     ListView<String> list;
     @FXML
@@ -77,17 +63,6 @@ public class UserPanelController {
 
     @FXML
     private void initialize() {
-//        System.out.println("USER PANEL CONTROLLER INIT");
-        //   	try {
-//            InetAddress iAddress = InetAddress.getByName("127.0.0.1");
-//            socket = new Socket(iAddress, PORT_NUMBER);
-//            oos = new ObjectOutputStream(socket.getOutputStream());
-//            ois = new ObjectInputStream(socket.getInputStream());
-//            crypto = new Crypto();
-//
-//        } catch(Exception e) {
-//        	e.printStackTrace();
-//        }
         tArea.setVisible(false);
         logs.setVisible(false);
         try {
@@ -109,14 +84,7 @@ public class UserPanelController {
                 new ChangeListener<String>() {
             public void changed(ObservableValue<? extends String> ov,
                     String old_val, String new_val) {
-//                        try {
-                tArea.setText(getFileContent(PATH + SignInController.uName + "/" + new_val));
-                fileName = PATH + "/user/" + new_val;
-//							
-//						} catch (IOException e) {
-//							e.printStackTrace();
-//						}
-
+                        fileName = PATH + "/user/" + new_val;
             }
         });
 
@@ -127,9 +95,14 @@ public class UserPanelController {
     protected void handleSaveButton(ActionEvent event) {
 
         try {
-            //writeToFile(fileName, tArea.getText());
+            SignInController.oos.writeObject("");
             SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("modify", SignInController.privateKey));
-            alert("You successfully edited file");
+            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tArea.getText(), SignInController.sessionKey));
+            if("true".equals(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey))) {
+                alert("You successfully edited file");
+            } else {
+                alert("File can not be edited");
+            }
             tArea.setVisible(false);
         } catch (Exception ex) {
             Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
@@ -141,6 +114,24 @@ public class UserPanelController {
     protected void handleEditButton(ActionEvent event) {
 
         tArea.setVisible(true);
+        String content = tArea.getText();
+        try {
+            SignInController.oos.writeObject("");
+            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("edit", SignInController.privateKey));
+            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(fileName, SignInController.sessionKey));
+            tArea.setText(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
+        } catch (IOException ex) {
+            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InvalidKeyException ex) {
+            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IllegalBlockSizeException ex) {
+            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (BadPaddingException ex) {
+            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
     }
 
     @FXML
@@ -188,54 +179,16 @@ public class UserPanelController {
 
         cFileNames = (String[]) SignInController.ois.readObject();
         fileNames = new String[cFileNames.length];
-       // for (int i = 0; i < cFileNames.length; i++) {
-            try {
-                fileNames = SignInController.asymmetricCrypto.DecryptStringArraySymmetric(cFileNames, SignInController.sessionKey);
+        try {
+            fileNames = SignInController.asymmetricCrypto.DecryptStringArraySymmetric(cFileNames, SignInController.sessionKey);
 
-            } catch (Exception e) {
+        } catch (Exception e) {
 
-                e.printStackTrace();
-            }
-            //System.out.println("FILE NAMES USER PANEL CONTROLLER : " + fileNames[0]);
-
-    //    }
-//		File folder = new File(path);
-//		File[] files = folder.listFiles();
-//		String[] fileNames = new String[files.length];
-//		int j = 0;
-//		
-//		for(int i = 0; i < files.length; i++) {
-//			if(files[i].isFile()) {
-//				fileNames[j] = files[i].getName();
-//				j++;
-//			}
-//		}
+            e.printStackTrace();
+        }
         return fileNames;
     }
 
-//	private String getFileContent(String pathToFile) throws IOException {
-//		
-//	    StringBuilder sb = new StringBuilder();
-//		String line;
-//		String content;
-//		File file = new File(pathToFile);
-//		BufferedReader br = new BufferedReader(new FileReader(file));
-//			while((line = br.readLine()) != null) {
-//				sb.append(line);
-//		        sb.append(System.lineSeparator());
-//			}
-//			content = sb.toString();
-//			System.out.println(content);
-//			br.close();
-//		return content;
-//	}
-//	private String getFileContent(String pathToFile) throws IOException {
-//		
-//		String fileContent;
-//		
-//		
-//		return fileContent;
-//	}
     public void writeToFile(String path, String data) throws IOException {
         File file = new File(path);
         BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
@@ -246,7 +199,7 @@ public class UserPanelController {
 
     }
 
-    private void alert(String message) {
+    protected static void alert(String message) {
 
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle("Information");
@@ -259,6 +212,7 @@ public class UserPanelController {
     private String getFileContent(String path) {
         String content = "";
         try {
+            System.out.println("PATH IN UPALEN CONTR :  " + path);
             SignInController.oos.writeObject("");
             SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("content", SignInController.privateKey));
             SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(path, SignInController.sessionKey));
