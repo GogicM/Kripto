@@ -194,8 +194,12 @@ public class SignInController {
             fileChooser.setInitialDirectory(file);
         }
         file = fileChooser.showOpenDialog(getStage());
+        System.out.println("FILE NAME : " + file.getName().split("\\.")[0]);
+        if(!uName.equals(file.getName().split("\\.")[0])) {
+        	alert("Certificate not compatibile to this user.");
+        }
         setText(file.getName());
-        if (browseLabel.getText() != null) {
+        if (browseLabel.getText() != null && uName.equals(file.getName().split("\\.")[0])) {
             send.setVisible(true);
         }
 
@@ -206,13 +210,10 @@ public class SignInController {
         try {
 
             if (sendCertificate(uName)) {
-                System.out.println("SEND CERTIFICATE ! : ");
 
                 FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/userPanel.fxml"));
-                System.out.println("SEND CERTIFICATE ! : ");
 
                 Parent root = (Parent) loader.load();
-                System.out.println("SEND CERTIFICATE ! : ");
 
                 UserPanelController controller = loader.getController();
                 stage1.setTitle(" User panel");
@@ -309,15 +310,15 @@ public class SignInController {
         certificate = asymmetricCrypto.getCertificate("src\\certificates\\" + uName + ".crt");
         oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(certificate.getEncoded(), sessionKey));
         String cn = certificate.getSubjectX500Principal().toString().split(",")[0];
+        System.out.println("CN IZ CONTROLLERA : " + cn);
+        System.out.println("PRINCIPAL " + certificate.getIssuerX500Principal());
         oos.writeObject(asymmetricCrypto.EncryptStringSymmetric(cn, sessionKey));
         value = asymmetricCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
         System.out.println("VALUE : " + value);
 
         if (("true").equals(value)) {
             isGood = true;
-            System.out.println("IS GOOD : " + isGood);
         }
-
         return isGood;
     }
 

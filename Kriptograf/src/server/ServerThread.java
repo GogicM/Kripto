@@ -102,7 +102,6 @@ public class ServerThread extends Thread {
                     keyGenerator = KeyGenerator.getInstance("AES");
                     keyGenerator.init(128);
                     sessionKey = keyGenerator.generateKey();
-                    System.out.println("SESSION KEY : " + Base64.getEncoder().encodeToString(sessionKey.getEncoded()));
                     byte[] sessionKeyEnc = aCrypto.AsymmetricFileEncription(sessionKey.getEncoded(), publicKey);
                     oos.writeObject(sessionKeyEnc);
                 }
@@ -118,27 +117,14 @@ public class ServerThread extends Thread {
                             oos.writeObject(loginCheck(userName, password));
                         }
                         privateKey = aCrypto.getPrivateKey("src/keys/" + userName + "DER.key");
-                        File keyFile = new File("src/server/serverSessionKey");
+                        File keyFile = new File("src/server/serverSessionKey" + userName);
                         keyFile.setReadOnly();
                         if (!keyFile.exists()) {
                             serverSecretKey = keyGenerator.generateKey();
-                            System.out.println("SERVER SECRET KEY : " + Base64.getEncoder().encodeToString(serverSecretKey.getEncoded()));
                             writeKeyToFile(keyFile, serverSecretKey);
                         } else {
                             serverSecretKey = readKeyFromFile(keyFile, privateKey);
-                            System.out.println("SERVER SECRET KEY FROM FILE : " + Base64.getEncoder().encodeToString(serverSecretKey.getEncoded()));
                         }
-
-                        //test
-                        System.out.println("SIZE OF AES KEY : " + sessionKey.getEncoded().length);
-                        String test = "Test symmetric file enc / dec";
-                        File fileTest = new File("src/server/testFileEnc");
-                        if (!fileTest.exists()) {
-                            fileTest.createNewFile();
-                        }
-                        aCrypto.writeToFile(fileTest, test.getBytes(), serverSecretKey);
-                        String decryptedFromFile = new String(aCrypto.readFromFile(fileTest, serverSecretKey));
-                        System.out.println("DECRYPTED DATA : " + decryptedFromFile);
 
                     }
 
@@ -153,7 +139,6 @@ public class ServerThread extends Thread {
                         X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
                         //System.out.println(certificate.toString());
                         String cn = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        System.out.println("CCCCCCCCNNNNNN : " + cn);
                         if (cn.equals(certificate.getSubjectX500Principal().toString().split(",")[0])) {
                             System.out.println("CCCCCCCCNNNNNN : " + cn);
 
