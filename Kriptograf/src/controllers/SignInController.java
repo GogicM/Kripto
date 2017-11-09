@@ -35,9 +35,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
@@ -151,16 +153,15 @@ public class SignInController {
                     //sessionKey for symmetric encryption
                     sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
                             0, length, "AES");
-                    System.out.println("SESSION KEY : " + Base64.getEncoder().encodeToString(sessionKey.getEncoded()));
-                    System.out.println("PUBLIC KEY : " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
                     //login went well, now client sends certificate				                 
 
                     boolean login;
                     do {
                         login = loginCheck(uName, password);
                         //    }
+                        System.out.println("LOGIN : " + login);
                         if (!login) {
-                            alert("Wront user name or password!");
+                            alert("Wrong user name or password!");
                         }
                     } while (!login);
 
@@ -197,6 +198,7 @@ public class SignInController {
         System.out.println("FILE NAME : " + file.getName().split("\\.")[0]);
         if(!uName.equals(file.getName().split("\\.")[0])) {
         	alert("Certificate not compatibile to this user.");
+        	send.setVisible(false);
         }
         setText(file.getName());
         if (browseLabel.getText() != null && uName.equals(file.getName().split("\\.")[0])) {
@@ -270,7 +272,8 @@ public class SignInController {
 
     private boolean loginCheck(String username, String password) throws IOException,
             InvalidKeyException, IllegalBlockSizeException,
-            BadPaddingException, NoSuchAlgorithmException, ClassNotFoundException {
+            BadPaddingException, NoSuchAlgorithmException, ClassNotFoundException, 
+            InvalidKeySpecException, SignatureException {
 
         boolean login = false;
         String option = "login";
@@ -278,6 +281,7 @@ public class SignInController {
         String encryptedPassword;
         //for some reason, first writeObject dissappears, so I had to send empty String
         oos.writeObject("");
+       // String signedEncOption = asymmetricCrypto.signMessagge(option, privateKey);
         String encOption = asymmetricCrypto.EncryptStringAsymmetric(option, privateKey);
         //encrypt option and send to server
         oos.writeObject(encOption);

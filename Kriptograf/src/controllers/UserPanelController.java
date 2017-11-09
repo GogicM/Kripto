@@ -2,10 +2,12 @@ package controllers;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.InvalidKeyException;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,7 +39,7 @@ public class UserPanelController {
     private String fileName;
     private String fileContent;
     private Socket socket;
-
+    private String userName;
     private static final int PORT_NUMBER = 9999;
     @FXML
     ListView<String> list;
@@ -63,7 +65,7 @@ public class UserPanelController {
         tArea.setVisible(false);
         logs.setVisible(false);
         try {
-            String[] fileNames = getFileNames(PATH + ServerThread.getUserName());
+            String[] fileNames = getFileNames();
             data.addAll(fileNames);
 
         } catch (ClassNotFoundException | IOException e1) {
@@ -76,6 +78,7 @@ public class UserPanelController {
             e.printStackTrace();
         }
         list.setItems(data);
+        userName = SignInController.uName;
 
         list.getSelectionModel().selectedItemProperty().addListener(
                 new ChangeListener<String>() {
@@ -162,9 +165,51 @@ public class UserPanelController {
     }
     @FXML
     protected void handleDownloadButton(ActionEvent event) {
+    	
+    	try {
+    		FileOutputStream fos = null;
+    		SignInController.oos.writeObject("");
+
+			SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("download", SignInController.privateKey));
+
+    		while(true) {
+    			
+    			String dataFromServer = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
+    	        
+    			if("stop".equals(dataFromServer)) {
+    	        	break;
+    	        }
+    			
+    			File userDirectory = new File("src/users/" + userName);
+    			System.out.println("DATA FROM SERVER IN U PANEL CONTROLLER : " + dataFromServer);
+    			userDirectory.mkdir();
+    			File userFile = new File(userDirectory.getPath() + "/" + dataFromServer.split("#")[0]);
+    			fos = new FileOutputStream(userFile);
+    	        fos.write(dataFromServer.split("#")[1].getBytes());   
+
+    		}
+    		fos.close();
+    		
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
         
     }
-    private String[] getFileNames(String path) throws IOException, ClassNotFoundException,
+    private String[] getFileNames() throws IOException, ClassNotFoundException,
             InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException {
 
@@ -174,8 +219,6 @@ public class UserPanelController {
         String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("get", SignInController.privateKey);
         SignInController.oos.writeObject(encOption);
         SignInController.oos.writeObject(encOption);
-
-        System.out.println("enc OPTION : " + encOption);
 
         cFileNames = (String[]) SignInController.ois.readObject();
         fileNames = new String[cFileNames.length];
@@ -200,20 +243,20 @@ public class UserPanelController {
         alert.showAndWait();
     }
 
-    private String getFileContent(String path) {
-        String content = "";
-        try {
-            System.out.println("PATH IN UPALEN CONTR :  " + path);
-            SignInController.oos.writeObject("");
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("content", SignInController.privateKey));
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(path, SignInController.sessionKey));
-            content = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
-            System.out.println("Content : " + content);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return content;
-    }
+//    private String getFileContent(String path) {
+//        String content = "";
+//        try {
+//            System.out.println("PATH IN UPALEN CONTR :  " + path);
+//            SignInController.oos.writeObject("");
+//            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("content", SignInController.privateKey));
+//            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(path, SignInController.sessionKey));
+//            content = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
+//            System.out.println("Content : " + content);
+//        } catch (Exception e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        }
+//        return content;
+//    }
 
 }

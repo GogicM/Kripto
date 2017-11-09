@@ -162,7 +162,6 @@ public class Crypto {
         
         FileOutputStream fos = new FileOutputStream(output);
         byte[] encContent = SymmetricFileEncryption(data, key);
-        System.out.println("ENCRYPTED DATA:  " + new String(encContent));
         fos.write(encContent);
         fos.flush();
         fos.close();
@@ -170,27 +169,7 @@ public class Crypto {
     /*
 	        Method for read from file
      */    
-//    public byte[] readFromFile(String path, SecretKey key) {
-//        byte[] data = null;
-//        byte[] encData = null;
-//        try {
-//            encData = Files.readAllBytes(new File(path).toPath());
-//            System.out.println("ENC STRING IN READ FROM FILE :" + new String(encData));
-//            data = SymmetricFileDecription(encData, key);
-//            System.out.println("IN READ FROM FILE STRING : " + new String(data));
-//       } catch (IOException ex) {
-//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (InvalidKeyException ex) {
-//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (IllegalBlockSizeException ex) {
-//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (BadPaddingException ex) {
-//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (InvalidAlgorithmParameterException ex) {
-//            Logger.getLogger(Crypto.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        return data;
-//    }
+
    public byte[] readFromFile(File input, SecretKey key)
             throws IllegalBlockSizeException, BadPaddingException, 
             IOException, InvalidKeyException, NoSuchAlgorithmException, 
@@ -317,22 +296,24 @@ public class Crypto {
         return encoded;
     }
 
-    public byte[] signMessagge(String message, PrivateKey privateKey) throws NoSuchAlgorithmException,
+    public String signMessagge(String message, PrivateKey privateKey) throws NoSuchAlgorithmException,
             InvalidKeyException, InvalidKeySpecException, IOException, SignatureException {
 
-        Signature sig = Signature.getInstance("SHA1withRSA");
+        Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initSign(privateKey);
         sig.update(message.getBytes());
-        return sig.sign();
+        byte[] signature = sig.sign();	
+        return Base64.getEncoder().encodeToString(signature);
 
     }
 
-    public boolean verifyDigitalSignature(byte[] data, byte[] signature, PublicKey publicKey)
+    public boolean verifyDigitalSignature(String data, String signature, PublicKey publicKey)
             throws GeneralSecurityException, IOException {
 
-        Signature sig = Signature.getInstance("SHA1withRSA");
+        Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(publicKey);
-        sig.update(data);
-        return sig.verify(signature);
+        sig.update(data.getBytes("UTF_8"));
+        byte[] sigBytes = Base64.getDecoder().decode(signature);
+        return sig.verify(sigBytes);
     }
 }

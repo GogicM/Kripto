@@ -7,6 +7,7 @@ package server;
 
 import crypto.Crypto;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,6 +40,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
@@ -90,7 +92,7 @@ public class ServerThread extends Thread {
             e.printStackTrace();
         }
     }
-
+    
     public void run() {
         try {
             while (true) {
@@ -127,7 +129,7 @@ public class ServerThread extends Thread {
                         }
 
                     }
-
+                    setUserName(userName);
                     if ("cert".equals(option)) {
 
                         byte[] receivedCertificate = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
@@ -151,13 +153,9 @@ public class ServerThread extends Thread {
                         //cert check
                         //    oos.writeObject(checkCertificate(certificate));
                     }
-                    //for sending files to client
-                    if ("download".equals(option)) {
-
-                    }
+                  
                     //for sending list of files 
                     if ("get".equals(option)) {
-                        System.out.println("OPCIJA " + option);
                         fileNames = getFileNames(PATH + userName);
                         String[] realFileNames = new String[fileNames.length];
                         for (int i = 0; i < fileNames.length; i++) {
@@ -192,10 +190,9 @@ public class ServerThread extends Thread {
                         // String encContent = aCrypto.EncryptStringSymmetric(new String(file), sessionKey);
                         aCrypto.writeToFile(f, s.getBytes(), serverSecretKey);
                         oos.writeObject(aCrypto.EncryptStringSymmetric(((f.exists()) ? "true" : "false"), sessionKey));
-                        changeFileWatcher(userName);
                     }
                     if ("logs".equals(option)) {
-                        oos.writeObject(aCrypto.SymmetricFileEncryption(getLog(userName), sessionKey));
+                        oos.writeObject(aCrypto.SymmetricFileEncryption(getLog(userName, serverSecretKey), sessionKey));
                     }
                     if (("content").equals(option)) {
                         String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
@@ -209,22 +206,32 @@ public class ServerThread extends Thread {
                        // String fileContent = aCrypto.DecryptStringSymmetric(new String(content), sessionKey);
                        String fileContent = new String(content); 
                        oos.writeObject(aCrypto.EncryptStringSymmetric(fileContent, sessionKey));
-                        System.out.println("NAME FROM SERVER IN EDIT : " + fileName);
                     }
                     if (("modify").equals(option)) {
                         String editedFileContent = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        System.out.println("NAME FROM SERVER IN MODIFY: " + fileName + "EDITED FILE CONTENT " + editedFileContent);
                         //String encrytedFileContent = aCrypto.EncryptStringSymmetric(editedFileContent, sessionKey);
                         File f = new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4]));
                         aCrypto.writeToFile(f, editedFileContent.getBytes(), serverSecretKey);
+                        changeFileWatcher(userName);
+                        
                         oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
                     }
+                    //for sending files to client
                     if(("download").equals(option)) {
                         for(int i = 0; i < fileNames.length; i++) {
                             //Adding file name and file content to map
-                            String fileContentForUser = new String(aCrypto.readFromFile(new File(fileNames[i]), serverSecretKey));
-                            fileNamesMap.put(fileNamesMap.get(fileNames[i]), fileContentForUser);
+                            String fileContentForUser = new String(aCrypto.readFromFile(new File(PATH + userName + "/" + fileNames[i]), serverSecretKey));
+                            String fileNameWithContent = fileNamesMap.get(fileNames[i]) + "#" + fileContentForUser;
+                            /* 
+                             * In file names map as a key we are using real file name , and as a value we are using file content
+                             */
+//                            System.out.println("KLJUC : " + fileNamesMap.get(fileNames[i]));
+//                            fileNamesMap.put(fileNamesMap.get(fileNames[i]), fileContentForUser);
+                            System.out.println("FILE NAME I FILE CONTENT : " + fileNameWithContent);
+                          //  byte[] byteMap = hashMapToByteArray((HashMap<String, String>) fileNamesMap);
+                            oos.writeObject(aCrypto.EncryptStringSymmetric(fileNameWithContent, sessionKey));
                         }
+                        oos.writeObject(aCrypto.EncryptStringSymmetric("stop", sessionKey));
                     }
                 }
             }
@@ -290,7 +297,7 @@ public class ServerThread extends Thread {
 
         Path path = Paths.get("src/server/users/");
         try {
-            File logs = new File("src/server/Logs" + uName + "Log");
+            File logs = new File("src/server/logs/" + uName + "Log");
             if (!logs.exists()) {
                 logs.createNewFile();
             }
@@ -320,9 +327,9 @@ public class ServerThread extends Thread {
         }
     }
 
-    private byte[] getLog(String uName) throws IOException {
+    private byte[] getLog(String uName, SecretKey key) throws IOException {
 
-        File f = new File("src/server/" + uName + "Logs");
+        File f = new File("src/server/logs/" + uName + "Logs");
         if (!f.exists()) {
             f.createNewFile();
         }
@@ -331,7 +338,7 @@ public class ServerThread extends Thread {
 
         fin.read(file);
         try {
-            byte[] fileDec = aCrypto.SymmetricFileDecription(file, sessionKey);
+            byte[] fileDec = aCrypto.SymmetricFileDecription(file, key);
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -345,6 +352,9 @@ public class ServerThread extends Thread {
     public static String getUserName() {
         return userName;
     }
+    public static void setUserName(String uName) {
+    	userName = uName;
+    }
 
     private boolean makeNewFile(String path, String data) throws IOException, GeneralSecurityException,
             IllegalBlockSizeException, BadPaddingException {
@@ -356,11 +366,6 @@ public class ServerThread extends Thread {
             file.createNewFile();
             aCrypto.writeToFile(file, data.getBytes(), serverSecretKey);
             isCreated = true;
-//			BufferedWriter bw = new BufferedWriter(new FileWriter(file, false));
-
-            //bw.append(" ");
-//			bw.write(data);
-//			bw.close();
         }
 
         return isCreated;
@@ -407,6 +412,7 @@ public class ServerThread extends Thread {
         oos.writeObject(obj);
         oos.close();
         fos.close();
+        
     }
 
     private Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
@@ -477,5 +483,20 @@ public class ServerThread extends Thread {
         SecretKey secretKey = new SecretKeySpec(sessionKey, 0, sessionKey.length, "AES");
 
         return secretKey;
+    }
+    
+    private byte[] hashMapToByteArray(HashMap<String, String> map) throws IOException {
+    	
+    	    	
+    	ByteArrayOutputStream byteStream = new ByteArrayOutputStream(5000);
+    	ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(byteStream));
+
+    	// writes the object into a bytestream
+    	oos.writeObject(map);
+    	oos.close();
+
+    	byte[] byteMap = byteStream.toByteArray();
+    	
+    	return byteMap;
     }
 }
