@@ -138,6 +138,9 @@ public class UserPanelController {
     protected void handleShowLogsButton(ActionEvent event) {
         try {
             SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("logs", SignInController.privateKey));
+            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("logs", SignInController.privateKey));
+            String logsFromServer = new String(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
+            logs.setText(logsFromServer);
         } catch (Exception e) {
             e.printStackTrace();
         }

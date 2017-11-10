@@ -156,11 +156,16 @@ public class Crypto {
     /*
 	        Method for write encrypted file
      */
-    public void writeToFile(File output, byte[] data, SecretKey key)
+    public void writeToFile(File output, byte[] data, SecretKey key, boolean append)
             throws IllegalBlockSizeException, BadPaddingException, 
             IOException, InvalidKeyException, NoSuchAlgorithmException {
         
-        FileOutputStream fos = new FileOutputStream(output);
+        FileOutputStream fos; 
+        if(!append ) { 
+        	fos = new FileOutputStream(output);
+        } else {
+        	fos = new FileOutputStream(output, append);
+        }
         byte[] encContent = SymmetricFileEncryption(data, key);
         fos.write(encContent);
         fos.flush();
@@ -206,11 +211,7 @@ public class Crypto {
         String decryptedData = null;
 
         this.symmCipher.init(Cipher.DECRYPT_MODE, key);
-//        final byte[] decryptedDataBytes = symmCipher.doFinal(new BASE64Decoder().decodeBuffer(message));
-//        decryptedData = new String(decryptedDataBytes);
-//
-//        return decryptedData;
-          return new String(symmCipher.doFinal(Base64.getDecoder().decode(message)));
+        return new String(symmCipher.doFinal(Base64.getDecoder().decode(message)));
     }
     
     /*
@@ -228,10 +229,6 @@ public class Crypto {
         }
     	String[] encryptedArray = new String[array.length];
     	this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
-    	// final byte[] encryptedDataBytes = symmCipher.doFinal(message.getBytes());
-    	// encryptedData = new BASE64Encoder().encode(encryptedDataBytes);
-
-    	//    return encryptedData;
     	for(int i = 0; i < array.length; i++) {
     		encryptedArray[i] = Base64.getEncoder().encodeToString(symmCipher.doFinal(array[i].getBytes()));
     	}
@@ -249,10 +246,6 @@ public class Crypto {
 		String[] decryptedArray = new String[encryptedArray.length];
 		
 		this.symmCipher.init(Cipher.DECRYPT_MODE, key);
-		//final byte[] decryptedDataBytes = symmCipher.doFinal(new BASE64Decoder().decodeBuffer(message));
-		//decryptedData = new String(decryptedDataBytes);
-		//
-		//return decryptedData;
 		for(int i = 0; i < encryptedArray.length; i++) {
 			decryptedArray[i] = new String(symmCipher.doFinal(Base64.getDecoder().decode(encryptedArray[i])));
 		}

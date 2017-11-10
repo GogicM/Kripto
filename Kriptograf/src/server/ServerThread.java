@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.WatchService;
@@ -129,7 +130,6 @@ public class ServerThread extends Thread {
                         }
 
                     }
-                    setUserName(userName);
                     if ("cert".equals(option)) {
 
                         byte[] receivedCertificate = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
@@ -153,7 +153,7 @@ public class ServerThread extends Thread {
                         //cert check
                         //    oos.writeObject(checkCertificate(certificate));
                     }
-                  
+                  System.out.println("OPTION : " +  option);
                     //for sending list of files 
                     if ("get".equals(option)) {
                         fileNames = getFileNames(PATH + userName);
@@ -179,20 +179,19 @@ public class ServerThread extends Thread {
 
                         if (!f.exists()) {
                             f.createNewFile();
-                            System.out.println("FILE CREATED!");
                             fileNamesMap.put(formatedEncFileName, fileName);
                             serialize(fileNamesMap, "src/server/hashMap.ser");
-                            System.out.println("MAP VALUE FOR " + fileNamesMap.get(formatedEncFileName));
                         }
                         byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
-                        System.out.println("FILE CONTENT :  " + new String(file));
                         String s = new String(file);
                         // String encContent = aCrypto.EncryptStringSymmetric(new String(file), sessionKey);
-                        aCrypto.writeToFile(f, s.getBytes(), serverSecretKey);
+                        aCrypto.writeToFile(f, s.getBytes(), serverSecretKey, false);
+                        changeFileWatcher(userName, "new", fileName);
                         oos.writeObject(aCrypto.EncryptStringSymmetric(((f.exists()) ? "true" : "false"), sessionKey));
                     }
                     if ("logs".equals(option)) {
-                        oos.writeObject(aCrypto.SymmetricFileEncryption(getLog(userName, serverSecretKey), sessionKey));
+                    	System.out.println("LOOOOG : " + getLog(userName, serverSecretKey));
+                        oos.writeObject(aCrypto.EncryptStringSymmetric(getLog(userName, serverSecretKey), sessionKey));
                     }
                     if (("content").equals(option)) {
                         String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
@@ -207,13 +206,14 @@ public class ServerThread extends Thread {
                        String fileContent = new String(content); 
                        oos.writeObject(aCrypto.EncryptStringSymmetric(fileContent, sessionKey));
                     }
+                    /*when save button is clicked */
                     if (("modify").equals(option)) {
                         String editedFileContent = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
                         //String encrytedFileContent = aCrypto.EncryptStringSymmetric(editedFileContent, sessionKey);
                         File f = new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4]));
-                        aCrypto.writeToFile(f, editedFileContent.getBytes(), serverSecretKey);
-                        changeFileWatcher(userName);
-                        
+                        aCrypto.writeToFile(f, editedFileContent.getBytes(), serverSecretKey , false);
+                        changeFileWatcher(userName, "edit", fileName.split("/")[4]);
+                        System.out.println("AAAA : " + fileName.split("/")[4]);
                         oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
                     }
                     //for sending files to client
@@ -293,60 +293,47 @@ public class ServerThread extends Thread {
     * Method for tracking changes on user files, and for log creation
     *
      */
-    private void changeFileWatcher(String uName) {
-
-        Path path = Paths.get("src/server/users/");
-        try {
+    private void changeFileWatcher(String uName, String option, String fileName) {
+    	
+         try {
             File logs = new File("src/server/logs/" + uName + "Log");
+            
             if (!logs.exists()) {
                 logs.createNewFile();
             }
-            WatchService watcher = path.getFileSystem().newWatchService();
-            path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE);
-
-            WatchKey key = watcher.take();
-
-            List<WatchEvent<?>> events = key.pollEvents();
-            byte[] text = null;
-            for (WatchEvent event : events) {
-                if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-                    text = ("\n" + LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
-                }
-                if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-                    text = (LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
-                }
-                if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-                    text = (LocalDateTime.now() + " user " + uName + " " + event.context()).toString().getBytes("UTF8");
-                }
-
-                aCrypto.writeToFile(logs, text, serverSecretKey);
+            String content = new String();
+            switch(option) {
+            
+            case "edit":
+            	content = LocalDateTime.now() + " USER : " + uName + " edited file " + fileName + "\n "; 
+            	break;
+            case "new":
+            	content = LocalDateTime.now() + " user " + uName + " created new file :  " + fileName + "\n "; 
+            	break;
+            default:
+            	break;
             }
+            
+            aCrypto.writeToFile(logs, content.getBytes(), serverSecretKey, true);
+            
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private byte[] getLog(String uName, SecretKey key) throws IOException {
+    private String getLog(String uName, SecretKey key) throws IOException {
 
-        File f = new File("src/server/logs/" + uName + "Logs");
+        File f = new File("src/server/logs/" + uName + "Log");
+        byte[] file = new byte[(int) f.length()];
         if (!f.exists()) {
             f.createNewFile();
         }
-        byte[] file = new byte[(int) f.length()];
-        FileInputStream fin = new FileInputStream(f);
-
-        fin.read(file);
         try {
-            byte[] fileDec = aCrypto.SymmetricFileDecription(file, key);
-
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } finally {
-            fin.close();
+        	file = aCrypto.readFromFile(f, key);
+        } catch(Exception e) {
+        	e.printStackTrace();
         }
-        return file;
+        return new String(file);
     }
 
     public static String getUserName() {
@@ -356,25 +343,9 @@ public class ServerThread extends Thread {
     	userName = uName;
     }
 
-    private boolean makeNewFile(String path, String data) throws IOException, GeneralSecurityException,
-            IllegalBlockSizeException, BadPaddingException {
-
-        boolean isCreated = false;
-
-        File file = new File(aCrypto.EncryptStringSymmetric(path, sessionKey));
-        if (!file.exists()) {
-            file.createNewFile();
-            aCrypto.writeToFile(file, data.getBytes(), serverSecretKey);
-            isCreated = true;
-        }
-
-        return isCreated;
-    }
 
     private String getFileContent(String pathToFile) throws IOException {
 
-        StringBuilder sb = new StringBuilder();
-        String line;
         String content = "";
         File file = new File(pathToFile);
         try {
