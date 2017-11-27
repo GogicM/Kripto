@@ -88,7 +88,7 @@ public class SignInController {
     private static X509Certificate certificate;
     private static String username;
     private PublicKey publicKey;
-    protected static PrivateKey privateKey;
+    protected static  PrivateKey privateKey;
     protected static PublicKey serverPublicKey;
     private final Desktop desktop = Desktop.getDesktop();
     public static String uName;
@@ -130,7 +130,7 @@ public class SignInController {
             e.printStackTrace();
         }
     }
-
+    
     @FXML
     protected void handleSignInButton(ActionEvent event) {
 
@@ -161,7 +161,6 @@ public class SignInController {
                     do {
                         login = loginCheck(uName, password);
                         //    }
-                        System.out.println("LOGIN : " + login);
                         if (!login) {
                             alert("Wrong user name or password!");
                         }
@@ -389,4 +388,6 @@ public class SignInController {
 
     	return concatanated;
     }
+    
+
 }

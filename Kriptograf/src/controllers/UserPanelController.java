@@ -87,7 +87,7 @@ public class UserPanelController {
                 new ChangeListener<String>() {
             public void changed(ObservableValue<? extends String> ov,
                     String old_val, String new_val) {
-                        fileName = PATH + "/user/" + new_val;
+                fileName = PATH + "/user/" + new_val;
             }
         });
 
@@ -96,26 +96,26 @@ public class UserPanelController {
 
     @FXML
     protected void handleSaveButton(ActionEvent event) {
-    	if(!tArea.isVisible()) {
-    		alert("You have to modify file in order to save it!");
-    	} else {
-	        try {
-	            SignInController.oos.writeObject("");
-	            String option = "modify";
-	            String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
-	            String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
-	            SignInController.oos.writeObject(new String[] {signature, encOption});
-	            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tArea.getText(), SignInController.sessionKey));
-	            if("true".equals(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey))) {
-	                alert("You successfully edited file");
-	            } else {
-	                alert("File can not be edited");
-	            }
-	            tArea.setVisible(false);
-	        } catch (Exception ex) {
-	            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-	        }
-    	}
+        if (!tArea.isVisible()) {
+            alert("You have to modify file in order to save it!");
+        } else {
+            try {
+                SignInController.oos.writeObject("");
+                String option = "modify";
+                String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+                String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+                SignInController.oos.writeObject(new String[]{signature, encOption});
+                SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tArea.getText(), SignInController.sessionKey));
+                if ("true".equals(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey))) {
+                    alert("You successfully edited file");
+                } else {
+                    alert("File can not be edited");
+                }
+                tArea.setVisible(false);
+            } catch (Exception ex) {
+                Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
 
     }
 
@@ -127,26 +127,26 @@ public class UserPanelController {
         try {
             SignInController.oos.writeObject("");
             String option = "edit";
-            String encOption =  SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+            String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
             String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
-            SignInController.oos.writeObject(new String[] {signature, encOption});
+            SignInController.oos.writeObject(new String[]{signature, encOption});
             SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(fileName, SignInController.sessionKey));
             tArea.setText(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
         } catch (Exception ex) {
             Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-        } 
+        }
 
     }
 
     @FXML
     protected void handleShowLogsButton(ActionEvent event) {
         try {
-        	String option = "logs";
-            String encOption =  SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+            String option = "logs";
+            String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
             String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
 
             SignInController.oos.writeObject("");
-            SignInController.oos.writeObject(new String[] {signature, encOption});
+            SignInController.oos.writeObject(new String[]{signature, encOption});
             String logsFromServer = new String(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
             logs.setText(logsFromServer);
         } catch (Exception e) {
@@ -157,60 +157,64 @@ public class UserPanelController {
 
     @FXML
     protected void handleUploadNewFile(ActionEvent event) {
-        FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/uploadNewFileForm.fxml"));
-        try {
-            newFileData = newFileContent.getText();
-            Parent root = (Parent) loader.load();
+        if (newFileContent.getText().isEmpty()) {
+            alert("You can't upload empty file!");
+        } else {
+            FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/uploadNewFileForm.fxml"));
+            try {
+                newFileData = newFileContent.getText();
+                Parent root = (Parent) loader.load();
 
-            UploadNewFileController controller = loader.getController();
+                UploadNewFileController controller = loader.getController();
 
-            Stage stage = new Stage();
-            stage.setTitle(" User panel");
-            stage.setScene(new Scene(root));
-            stage.show();
+                Stage stage = new Stage();
+                stage.setTitle(" User panel");
+                stage.setScene(new Scene(root));
+                stage.show();
 //        stage.hide();
-        } catch (IOException e) {
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @FXML
+    protected void handleDownloadButton(ActionEvent event) {
+
+        try {
+            FileOutputStream fos = null;
+            SignInController.oos.writeObject("");
+            String option = "download";
+            String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+            String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+
+            SignInController.oos.writeObject(new String[]{signature, encOption});
+
+            while (true) {
+
+                String dataFromServer = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
+
+                if ("stop".equals(dataFromServer)) {
+                    break;
+                }
+
+                File userDirectory = new File("src/users/" + userName);
+                System.out.println("DATA FROM SERVER IN U PANEL CONTROLLER : " + dataFromServer);
+                userDirectory.mkdir();
+                File userFile = new File(userDirectory.getPath() + "/" + dataFromServer.split("#")[0]);
+                fos = new FileOutputStream(userFile);
+                fos.write(dataFromServer.split("#")[1].getBytes());
+
+            }
+            fos.close();
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
     }
-    @FXML
-    protected void handleDownloadButton(ActionEvent event) {
-    	
-    	try {
-    		FileOutputStream fos = null;
-    		SignInController.oos.writeObject("");
-          	String option = "download";
-            String encOption =  SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
-            String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
 
-			SignInController.oos.writeObject(new String[] {signature, encOption});
-
-    		while(true) {
-    			
-    			String dataFromServer = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
-    	        
-    			if("stop".equals(dataFromServer)) {
-    	        	break;
-    	        }
-    			
-    			File userDirectory = new File("src/users/" + userName);
-    			System.out.println("DATA FROM SERVER IN U PANEL CONTROLLER : " + dataFromServer);
-    			userDirectory.mkdir();
-    			File userFile = new File(userDirectory.getPath() + "/" + dataFromServer.split("#")[0]);
-    			fos = new FileOutputStream(userFile);
-    	        fos.write(dataFromServer.split("#")[1].getBytes());   
-
-    		}
-    		fos.close();
-    		
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-
-        
-    }
     private String[] getFileNames() throws IOException, ClassNotFoundException,
             InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException {
@@ -220,11 +224,11 @@ public class UserPanelController {
         String option = "get";
         String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("get", SignInController.serverPublicKey);
         String signature = null;
-		try {
-			signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
-		} catch (Exception e1) {
-			e1.printStackTrace();
-		}
+        try {
+            signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+        } catch (Exception e1) {
+            e1.printStackTrace();
+        }
         SignInController.oos.writeObject("");
         SignInController.oos.writeObject(new String[]{signature, encOption});
 
@@ -240,7 +244,6 @@ public class UserPanelController {
         return fileNames;
     }
 
-
     protected static void alert(String message) {
 
         Alert alert = new Alert(AlertType.INFORMATION);
@@ -250,21 +253,5 @@ public class UserPanelController {
 
         alert.showAndWait();
     }
-
-//    private String getFileContent(String path) {
-//        String content = "";
-//        try {
-//            System.out.println("PATH IN UPALEN CONTR :  " + path);
-//            SignInController.oos.writeObject("");
-//            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("content", SignInController.privateKey));
-//            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(path, SignInController.sessionKey));
-//            content = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
-//            System.out.println("Content : " + content);
-//        } catch (Exception e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        }
-//        return content;
-//    }
 
 }

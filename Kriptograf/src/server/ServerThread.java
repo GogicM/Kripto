@@ -18,21 +18,12 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.WatchService;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
 import java.security.GeneralSecurityException;
 import java.security.PublicKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.crypto.BadPaddingException;
@@ -47,7 +38,6 @@ import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import controllers.SignInController;
 
 /**
  *
@@ -63,9 +53,7 @@ public class ServerThread extends Thread {
     private KeyGenerator keyGenerator;
     private SecretKey sessionKey;
     private SecretKey serverSecretKey;
-    //public static SecretKey sessionKey;
     private Crypto aCrypto;
-    //public static Crypto aCrypto;
     private static String userName;
     private String password;
     private String[] fileNames;
@@ -75,10 +63,6 @@ public class ServerThread extends Thread {
      * Hash map in which we will store real file names with hash of file names as key - value pair
      */
     private Map<String, String> fileNamesMap = new HashMap<String, String>();
-    /*
-     * Hash map in which we will store real file names with file content for sending user
-     */
-    private Map<String, String> filesForUserMap = new HashMap<String, String>();
     private String fileName = null;
     private PrivateKey privateKey;
 
@@ -102,8 +86,8 @@ public class ServerThread extends Thread {
             while (true) {
 
                 Object obj = ois.readObject();
-                privateKey = aCrypto.getPrivateKey("src/server/CA.der");
-                serverPublicKey =  aCrypto.getPublicKey("src/server/CAPublic.der");
+                privateKey = aCrypto.getPrivateKey("src/server/CADER.key");
+                serverPublicKey =  aCrypto.getPublicKey("src/server/CAPublicDER.key");
                 if (obj instanceof PublicKey) {
                     publicKey = (PublicKey) obj;
                     keyGenerator = KeyGenerator.getInstance("AES");
@@ -455,7 +439,7 @@ public class ServerThread extends Thread {
             BadPaddingException, InvalidKeyException,
             IllegalBlockSizeException {
 
-        byte[] encSessionKey = aCrypto.AsymmetricFileEncription(key.getEncoded(), publicKey);
+        byte[] encSessionKey = aCrypto.AsymmetricFileEncription(key.getEncoded(), serverPublicKey);
         FileOutputStream fos = new FileOutputStream(file);
         fos.write(encSessionKey);
         fos.flush();

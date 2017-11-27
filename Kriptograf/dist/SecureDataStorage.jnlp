@@ -8,7 +8,7 @@
   </information>
   <resources>
     <j2se version="1.6+" href="http://java.sun.com/products/autodl/j2se"/>
-    <jar href="SecureDataStorage.jar" size="78024" download="eager" />
+    <jar href="SecureDataStorage.jar" size="93128" download="eager" />
     <jar href="lib\apache-commons-codec-1.4.jar" size="62704" download="eager" />
     <jar href="lib\bcpkix-jdk15on-157.jar" size="775948" download="eager" />
     <jar href="lib\bcprov-jdk15on-157.jar" size="3759724" download="eager" />
