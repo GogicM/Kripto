@@ -47,6 +47,8 @@ import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import controllers.SignInController;
+
 /**
  *
  * @author Milan
@@ -57,6 +59,7 @@ public class ServerThread extends Thread {
     private ObjectOutputStream oos;
     private ObjectInputStream ois;
     private PublicKey publicKey;
+    private PublicKey serverPublicKey;
     private KeyGenerator keyGenerator;
     private SecretKey sessionKey;
     private SecretKey serverSecretKey;
@@ -99,7 +102,8 @@ public class ServerThread extends Thread {
             while (true) {
 
                 Object obj = ois.readObject();
-
+                privateKey = aCrypto.getPrivateKey("src/server/CA.der");
+                serverPublicKey =  aCrypto.getPublicKey("src/server/CAPublic.der");
                 if (obj instanceof PublicKey) {
                     publicKey = (PublicKey) obj;
                     keyGenerator = KeyGenerator.getInstance("AES");
@@ -107,132 +111,147 @@ public class ServerThread extends Thread {
                     sessionKey = keyGenerator.generateKey();
                     byte[] sessionKeyEnc = aCrypto.AsymmetricFileEncription(sessionKey.getEncoded(), publicKey);
                     oos.writeObject(sessionKeyEnc);
+                    oos.writeObject(serverPublicKey);
                 }
 
                 if (obj instanceof String /* && aCrypto.verifyDigitalSignature(data, signature, publicKey) */) {
-                    String option = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
-                    if ("login".equals(option)) {
-                        userName = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
-                        password = aCrypto.DecryptStringAsymmetric((String) ois.readObject(), publicKey);
-                        //login response
-                        boolean login = loginCheck(userName, password);
-                        if (login) {
-                            oos.writeObject(loginCheck(userName, password));
-                        }
-                        privateKey = aCrypto.getPrivateKey("src/keys/" + userName + "DER.key");
-                        File keyFile = new File("src/server/serverSessionKey" + userName);
-                        keyFile.setReadOnly();
-                        if (!keyFile.exists()) {
-                            serverSecretKey = keyGenerator.generateKey();
-                            writeKeyToFile(keyFile, serverSecretKey);
-                        } else {
-                            serverSecretKey = readKeyFromFile(keyFile, privateKey);
-                        }
+                    String[] signatureAndData = (String[]) ois.readObject();
+                    String option = aCrypto.DecryptStringAsymmetric(signatureAndData[1], privateKey);
+                    if(aCrypto.verifyDigitalSignature(option, signatureAndData[0], publicKey)) {
+                    	if ("login".equals(option)) {
+                            System.out.println("OPTION : " + option);
 
-                    }
-                    if ("cert".equals(option)) {
+	                    	String[] signedUserName = (String[]) ois.readObject();
+	                        System.out.println("OPTION : " + option);
 
-                        byte[] receivedCertificate = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
+	                    	String[] signedPassword = (String[]) ois.readObject();
+	                    	if(aCrypto.verifyDigitalSignature(aCrypto.DecryptStringAsymmetric(signedUserName[1], privateKey), signedUserName[0], publicKey) &&  aCrypto.verifyDigitalSignature(aCrypto.DecryptStringAsymmetric(signedPassword[1], privateKey), signedPassword[0], publicKey) ) {
+	                    		oos.writeObject(false);
+	                    	}
+	                    	userName = aCrypto.DecryptStringAsymmetric(signedUserName[1], privateKey);
+	                    	password = aCrypto.DecryptStringAsymmetric(signedPassword[1], privateKey);
+	                        //login response
+	                        boolean login = loginCheck(userName, password);
+	                        if (login) {
+	                            oos.writeObject(loginCheck(userName, password));
+	                        }
+	                      //  privateKey = aCrypto.getPrivateKey("src/keys/" + userName + "DER.key");
+	                        File keyFile = new File("src/server/serverSessionKey" + userName);
+	                        keyFile.setReadOnly();
+	                        if (!keyFile.exists()) {
+	                            serverSecretKey = keyGenerator.generateKey();
+	                            writeKeyToFile(keyFile, serverSecretKey);
+	                        } else {
+	                            serverSecretKey = readKeyFromFile(keyFile, privateKey);
+	                        }
+	
+	                    }
+	                    if ("cert".equals(option)) {
 
-                        CertificateFactory cFactory = CertificateFactory.getInstance("X.509");
+	                        byte[] receivedCertificate = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
+	                        CertificateFactory cFactory = CertificateFactory.getInstance("X.509");
 
-                        InputStream in = new ByteArrayInputStream(receivedCertificate);
+	                        InputStream in = new ByteArrayInputStream(receivedCertificate);
+	
+	                        X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
+	                        //System.out.println(certificate.toString());
+	                        String cn = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+	                        if (cn.equals(certificate.getSubjectX500Principal().toString().split(",")[0])) {
+	                            System.out.println("CCCCCCCCNNNNNN : " + cn);
+	
+	                            oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
+	                            System.out.println("CCCCCCCCNNNNNN : " + cn);
+	
+	                        } else {
+	                            oos.writeObject(aCrypto.EncryptStringSymmetric("false", sessionKey));
+	                        }
+	                        //cert check
+	                        //    oos.writeObject(checkCertificate(certificate));
+	                    }
+	                  System.out.println("OPTION : " +  option);
+	                    //for sending list of files 
+	                    if ("get".equals(option)) {
+	                        fileNames = getFileNames(PATH + userName);
+	                        String[] realFileNames = new String[fileNames.length];
+	                        for (int i = 0; i < fileNames.length; i++) {
+	                            realFileNames[i] = fileNamesMap.get(fileNames[i]);
+	                        }
+	//                        System.out.println("REAL FILE NAMES : " + realFileNames[0]);
+	                        if (fileNames != null && realFileNames.length > 0 && realFileNames[0] != null) {
+	                        	System.out.println("USLO : " );
+	                            oos.writeObject(aCrypto.EncryptStringArraySymmetric(realFileNames, sessionKey));
+	                        } else {
+	                            String[] strings = new String[]{"", ""};
+	                            oos.writeObject(aCrypto.EncryptStringArraySymmetric(strings, sessionKey));
+	                        }
+                        	System.out.println("USLO : " );
 
-                        X509Certificate certificate = (X509Certificate) cFactory.generateCertificate(in);
-                        //System.out.println(certificate.toString());
-                        String cn = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        if (cn.equals(certificate.getSubjectX500Principal().toString().split(",")[0])) {
-                            System.out.println("CCCCCCCCNNNNNN : " + cn);
-
-                            oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
-                            System.out.println("CCCCCCCCNNNNNN : " + cn);
-
-                        } else {
-                            oos.writeObject(aCrypto.EncryptStringSymmetric("false", sessionKey));
-                        }
-                        //cert check
-                        //    oos.writeObject(checkCertificate(certificate));
-                    }
-                  System.out.println("OPTION : " +  option);
-                    //for sending list of files 
-                    if ("get".equals(option)) {
-                        fileNames = getFileNames(PATH + userName);
-                        String[] realFileNames = new String[fileNames.length];
-                        for (int i = 0; i < fileNames.length; i++) {
-                            realFileNames[i] = fileNamesMap.get(fileNames[i]);
-                        }
-//                        System.out.println("REAL FILE NAMES : " + realFileNames[0]);
-                        if (fileNames != null && realFileNames.length > 0 && realFileNames[0] != null) {
-                            oos.writeObject(aCrypto.EncryptStringArraySymmetric(realFileNames, sessionKey));
-                        } else {
-                            String[] strings = new String[]{"", ""};
-                            oos.writeObject(aCrypto.EncryptStringArraySymmetric(strings, sessionKey));
-                        }
-                    }
-                    //for adding new file on server
-                    if ("new".equals(option)) {
-                        String fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        System.out.println("FILE NAME SERVER POSLAN IS UPANEL CONTROLLERA : " + fileName);
-                        // String cFileName = aCrypto.EncryptStringSymmetric(fileName, sessionKey);
-                        String formatedEncFileName = aCrypto.encodeWithSHA256(fileName).replaceAll("\\/", "");
-                        File f = new File("src/server/users/" + userName + "/" + formatedEncFileName);
-
-                        if (!f.exists()) {
-                            f.createNewFile();
-                            fileNamesMap.put(formatedEncFileName, fileName);
-                            serialize(fileNamesMap, "src/server/hashMap.ser");
-                        }
-                        byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
-                        String s = new String(file);
-                        // String encContent = aCrypto.EncryptStringSymmetric(new String(file), sessionKey);
-                        aCrypto.writeToFile(f, s.getBytes(), serverSecretKey, false);
-                        changeFileWatcher(userName, "new", fileName);
-                        oos.writeObject(aCrypto.EncryptStringSymmetric(((f.exists()) ? "true" : "false"), sessionKey));
-                    }
-                    if ("logs".equals(option)) {
-                    	System.out.println("LOOOOG : " + getLog(userName, serverSecretKey));
-                        oos.writeObject(aCrypto.EncryptStringSymmetric(getLog(userName, serverSecretKey), sessionKey));
-                    }
-                    if (("content").equals(option)) {
-                        String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        System.out.println("PATH " + path);
-                        String content = getFileContent(path);
-                        oos.writeObject(aCrypto.EncryptStringSymmetric("", sessionKey));
-                    }
-                    if (("edit").equals(option)) {
-                        fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        byte[] content = aCrypto.readFromFile(new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4])), serverSecretKey);
-                       // String fileContent = aCrypto.DecryptStringSymmetric(new String(content), sessionKey);
-                       String fileContent = new String(content); 
-                       oos.writeObject(aCrypto.EncryptStringSymmetric(fileContent, sessionKey));
-                    }
-                    /*when save button is clicked */
-                    if (("modify").equals(option)) {
-                        String editedFileContent = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-                        //String encrytedFileContent = aCrypto.EncryptStringSymmetric(editedFileContent, sessionKey);
-                        File f = new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4]));
-                        aCrypto.writeToFile(f, editedFileContent.getBytes(), serverSecretKey , false);
-                        changeFileWatcher(userName, "edit", fileName.split("/")[4]);
-                        System.out.println("AAAA : " + fileName.split("/")[4]);
-                        oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
-                    }
-                    //for sending files to client
-                    if(("download").equals(option)) {
-                        for(int i = 0; i < fileNames.length; i++) {
-                            //Adding file name and file content to map
-                            String fileContentForUser = new String(aCrypto.readFromFile(new File(PATH + userName + "/" + fileNames[i]), serverSecretKey));
-                            String fileNameWithContent = fileNamesMap.get(fileNames[i]) + "#" + fileContentForUser;
-                            /* 
-                             * In file names map as a key we are using real file name , and as a value we are using file content
-                             */
-//                            System.out.println("KLJUC : " + fileNamesMap.get(fileNames[i]));
-//                            fileNamesMap.put(fileNamesMap.get(fileNames[i]), fileContentForUser);
-                            System.out.println("FILE NAME I FILE CONTENT : " + fileNameWithContent);
-                          //  byte[] byteMap = hashMapToByteArray((HashMap<String, String>) fileNamesMap);
-                            oos.writeObject(aCrypto.EncryptStringSymmetric(fileNameWithContent, sessionKey));
-                        }
-                        oos.writeObject(aCrypto.EncryptStringSymmetric("stop", sessionKey));
-                    }
+	                    }
+	                    //for adding new file on server
+	                    if ("new".equals(option)) {
+	                        String fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+	                        System.out.println("FILE NAME SERVER POSLAN IS UPANEL CONTROLLERA : " + fileName);
+	                        // String cFileName = aCrypto.EncryptStringSymmetric(fileName, sessionKey);
+	                        String formatedEncFileName = aCrypto.encodeWithSHA256(fileName).replaceAll("\\/", "");
+	                        File f = new File("src/server/users/" + userName + "/" + formatedEncFileName);
+	
+	                        if (!f.exists()) {
+	                            f.createNewFile();
+	                            fileNamesMap.put(formatedEncFileName, fileName);
+	                            serialize(fileNamesMap, "src/server/hashMap.ser");
+	                        }
+	                        byte[] file = aCrypto.SymmetricFileDecription(((byte[]) ois.readObject()), sessionKey);
+	                        String s = new String(file);
+	                        // String encContent = aCrypto.EncryptStringSymmetric(new String(file), sessionKey);
+	                        aCrypto.writeToFile(f, s.getBytes(), serverSecretKey, false);
+	                        changeFileWatcher(userName, "new", fileName);
+	                        oos.writeObject(aCrypto.EncryptStringSymmetric(((f.exists()) ? "true" : "false"), sessionKey));
+	                    }
+	                    if ("logs".equals(option)) {
+	                    	System.out.println("LOOOOG : " + getLog(userName, serverSecretKey));
+	                        oos.writeObject(aCrypto.EncryptStringSymmetric(getLog(userName, serverSecretKey), sessionKey));
+	                    }
+	                    if (("content").equals(option)) {
+	                        String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+	                        System.out.println("PATH " + path);
+	                        String content = getFileContent(path);
+	                        oos.writeObject(aCrypto.EncryptStringSymmetric("", sessionKey));
+	                    }
+	                    if (("edit").equals(option)) {
+	                        fileName = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+	                        byte[] content = aCrypto.readFromFile(new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4])), serverSecretKey);
+	                       // String fileContent = aCrypto.DecryptStringSymmetric(new String(content), sessionKey);
+	                       String fileContent = new String(content); 
+	                       oos.writeObject(aCrypto.EncryptStringSymmetric(fileContent, sessionKey));
+	                    }
+	                    /*when save button is clicked */
+	                    if (("modify").equals(option)) {
+	                        String editedFileContent = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
+	                        //String encrytedFileContent = aCrypto.EncryptStringSymmetric(editedFileContent, sessionKey);
+	                        File f = new File(PATH + userName + "/" + (String) getKeyFromValue(fileNamesMap, fileName.split("/")[4]));
+	                        aCrypto.writeToFile(f, editedFileContent.getBytes(), serverSecretKey , false);
+	                        changeFileWatcher(userName, "edit", fileName.split("/")[4]);
+	                        System.out.println("AAAA : " + fileName.split("/")[4]);
+	                        oos.writeObject(aCrypto.EncryptStringSymmetric("true", sessionKey));
+	                    }
+	                    //for sending files to client
+	                    if(("download").equals(option)) {
+	                        for(int i = 0; i < fileNames.length; i++) {
+	                            //Adding file name and file content to map
+	                            String fileContentForUser = new String(aCrypto.readFromFile(new File(PATH + userName + "/" + fileNames[i]), serverSecretKey));
+	                            String fileNameWithContent = fileNamesMap.get(fileNames[i]) + "#" + fileContentForUser;
+	                            /* 
+	                             * In file names map as a key we are using real file name , and as a value we are using file content
+	                             */
+	//                            System.out.println("KLJUC : " + fileNamesMap.get(fileNames[i]));
+	//                            fileNamesMap.put(fileNamesMap.get(fileNames[i]), fileContentForUser);
+	                            System.out.println("FILE NAME I FILE CONTENT : " + fileNameWithContent);
+	                          //  byte[] byteMap = hashMapToByteArray((HashMap<String, String>) fileNamesMap);
+	                            oos.writeObject(aCrypto.EncryptStringSymmetric(fileNameWithContent, sessionKey));
+	                        }
+	                        oos.writeObject(aCrypto.EncryptStringSymmetric("stop", sessionKey));
+	                    }
+                }
                 }
             }
 

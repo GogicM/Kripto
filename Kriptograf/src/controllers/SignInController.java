@@ -89,8 +89,9 @@ public class SignInController {
     private static String username;
     private PublicKey publicKey;
     protected static PrivateKey privateKey;
+    protected static PublicKey serverPublicKey;
     private final Desktop desktop = Desktop.getDesktop();
-    protected static String uName;
+    public static String uName;
     private String password;
     @FXML
     private Button signIn;
@@ -147,6 +148,7 @@ public class SignInController {
                     //Exchange of keys for asymmetric crypto
                     //send public key to server
                     oos.writeObject(publicKey);
+                    
                     // boolean b = Boolean.valueOf(ois.readObject().toString());
                     byte[] keyFromServer = (byte[]) ois.readObject();
                     int length = asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey).length;
@@ -154,7 +156,7 @@ public class SignInController {
                     sessionKey = new SecretKeySpec(asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey),
                             0, length, "AES");
                     //login went well, now client sends certificate				                 
-
+                    serverPublicKey = (PublicKey) ois.readObject();
                     boolean login;
                     do {
                         login = loginCheck(uName, password);
@@ -214,32 +216,20 @@ public class SignInController {
             if (sendCertificate(uName)) {
 
                 FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/userPanel.fxml"));
-
+                System.out.println("Proslo");
                 Parent root = (Parent) loader.load();
 
                 UserPanelController controller = loader.getController();
+
                 stage1.setTitle(" User panel");
                 stage1.setScene(new Scene(root));
                 stage1.show();
+
                 stage.hide();
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (CertificateEncodingException ex) {
-            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InvalidKeyException ex) {
-            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IllegalBlockSizeException ex) {
-            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (BadPaddingException ex) {
-            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (CertificateException ex) {
-            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(SignInController.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        } 
     }
 
     private static void configureFileChooser(final FileChooser fileChooser) {
@@ -281,17 +271,21 @@ public class SignInController {
         String encryptedPassword;
         //for some reason, first writeObject dissappears, so I had to send empty String
         oos.writeObject("");
+        String signature = asymmetricCrypto.signMessagge(option, privateKey);
        // String signedEncOption = asymmetricCrypto.signMessagge(option, privateKey);
-        String encOption = asymmetricCrypto.EncryptStringAsymmetric(option, privateKey);
+        String encOption = asymmetricCrypto.EncryptStringAsymmetric(option, serverPublicKey);
+        String[] signatureAndOption = new String[]{signature, encOption};
+        System.out.println("SIGNATURE LENGTH : " + signatureAndOption[0].getBytes().length + " AND OPTION : " + signatureAndOption[1]);
         //encrypt option and send to server
-        oos.writeObject(encOption);
+        oos.writeObject(signatureAndOption);
+        //oos.writeObject(asymmetricCrypto.EncryptStringArrayAsymmetric(signatureAndOption, privateKey));
         //encrypt username and send to server#
-        encryptedUname = asymmetricCrypto.EncryptStringAsymmetric(username, privateKey);
-        oos.writeObject(encryptedUname);
+        encryptedUname = asymmetricCrypto.EncryptStringAsymmetric(username, serverPublicKey);
+        oos.writeObject(new String[] {asymmetricCrypto.signMessagge(option, privateKey), encryptedUname});
         //encrypt password and send to server
         String securePassword = cipher(password);
-        encryptedPassword = asymmetricCrypto.EncryptStringAsymmetric(securePassword, privateKey);
-        oos.writeObject(encryptedPassword);
+        encryptedPassword = asymmetricCrypto.EncryptStringAsymmetric(securePassword, serverPublicKey);
+        oos.writeObject(new String[] {asymmetricCrypto.signMessagge(option, privateKey), encryptedPassword});
         login = Boolean.valueOf(ois.readObject().toString());
 
         return login;
@@ -300,7 +294,7 @@ public class SignInController {
     private boolean sendCertificate(String uName) throws InvalidKeyException,
             IllegalBlockSizeException, BadPaddingException,
             IOException, CertificateException, ClassNotFoundException,
-            NoSuchAlgorithmException {
+            NoSuchAlgorithmException, InvalidKeySpecException, SignatureException {
 
         String value = "";
 
@@ -308,21 +302,24 @@ public class SignInController {
         String option = "cert";
 
         oos.writeObject("");
-
-        String optionEncrypted = asymmetricCrypto.EncryptStringAsymmetric(option, privateKey);
-        oos.writeObject(optionEncrypted);
+        
+        String optionEncrypted = asymmetricCrypto.EncryptStringAsymmetric(option, serverPublicKey);
+        String signature = asymmetricCrypto.signMessagge(option, privateKey);
+        oos.writeObject(new String[] {signature, optionEncrypted});
         certificate = asymmetricCrypto.getCertificate("src\\certificates\\" + uName + ".crt");
+        System.out.println("CERTIFICATE SIZE : " + certificate.getEncoded().length + "SIGNED CERT SIZE : " + asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes().length);
+        byte[] array = concatanateByteArrays(asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes(), certificate.getEncoded());
+        
         oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(certificate.getEncoded(), sessionKey));
         String cn = certificate.getSubjectX500Principal().toString().split(",")[0];
-        System.out.println("CN IZ CONTROLLERA : " + cn);
-        System.out.println("PRINCIPAL " + certificate.getIssuerX500Principal());
         oos.writeObject(asymmetricCrypto.EncryptStringSymmetric(cn, sessionKey));
         value = asymmetricCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-        System.out.println("VALUE : " + value);
 
         if (("true").equals(value)) {
             isGood = true;
         }
+        System.out.println("VALUE : " + isGood);
+
         return isGood;
     }
 
@@ -369,5 +366,27 @@ public class SignInController {
 
     protected PrivateKey getPrivateKey() {
         return privateKey;
+    }
+    /*
+     * Method that takes two byte arrays and concatenate them into one, appending one to another
+     * 
+     */
+    private byte[] concatanateByteArrays(byte[] first, byte[] second) {
+    	
+    	//byte[] concatanated = new byte[(int) first.length + (int) second.length];
+    	ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+    	try {
+			output.write(first);
+	    	output.write(second);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    	System.out.println("FIRST's size :" +first.length + "second's size: " + second.length);
+    	byte[] concatanated = output.toByteArray();
+    	System.out.println("output's size :" + concatanated.length);
+
+    	return concatanated;
     }
 }

@@ -224,9 +224,7 @@ public class Crypto {
     	if(array == null) {
     		System.out.println("ARRAY IS NULL");
     	}
-        for(String s : array) {
-            System.out.println("NIZ : " + s);
-        }
+
     	String[] encryptedArray = new String[array.length];
     	this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
     	for(int i = 0; i < array.length; i++) {
@@ -252,20 +250,42 @@ public class Crypto {
 		return decryptedArray;
 	}
 
-    public String EncryptStringAsymmetric(String message, PrivateKey key)
+    public String EncryptStringAsymmetric(String message, PublicKey key)
             throws InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException {
-
         this.asymmCipher.init(Cipher.ENCRYPT_MODE, key);
         return Base64.getEncoder().encodeToString(asymmCipher.doFinal(message.getBytes()));
     }
 
-    public String DecryptStringAsymmetric(String encMessage, PublicKey key)
+    public String DecryptStringAsymmetric(String encMessage, PrivateKey key)
             throws InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException {
 
         this.asymmCipher.init(Cipher.DECRYPT_MODE, key);
         return new String(asymmCipher.doFinal(Base64.getDecoder().decode(encMessage)));
+    }
+    
+    public String[] EncryptStringArrayAsymmetric(String[] message, PublicKey key)
+            throws InvalidKeyException, IllegalBlockSizeException,
+            BadPaddingException {
+    	String[] encryptedArray = new String[message.length];
+
+        this.asymmCipher.init(Cipher.ENCRYPT_MODE, key);
+        for(int i = 0; i < message.length; i++) {
+    		encryptedArray[i] = Base64.getEncoder().encodeToString(asymmCipher.doFinal(message[i].getBytes()));
+    	}
+    	return encryptedArray;
+    }
+
+    public String[] DecryptStringArrayAsymmetric(String[] encMessage, PrivateKey key)
+            throws InvalidKeyException, IllegalBlockSizeException,
+            BadPaddingException {
+		String[] decryptedArray = new String[encMessage.length];
+        this.asymmCipher.init(Cipher.DECRYPT_MODE, key);
+		for(int i = 0; i < encMessage.length; i++) {
+			decryptedArray[i] = new String(asymmCipher.doFinal(Base64.getDecoder().decode(encMessage[i])));
+		}
+		return decryptedArray;
     }
 
     public X509Certificate getCertificate(String path) throws CertificateException,
@@ -305,7 +325,7 @@ public class Crypto {
 
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(publicKey);
-        sig.update(data.getBytes("UTF_8"));
+        sig.update(data.getBytes());
         byte[] sigBytes = Base64.getDecoder().decode(signature);
         return sig.verify(sigBytes);
     }

@@ -34,8 +34,10 @@ public class UploadNewFileController {
 		try {
                     String data = UserPanelController.newFileData;
                     SignInController.oos.writeObject("");
-                    String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("new", SignInController.privateKey);
-                    SignInController.oos.writeObject(encOption);
+                    String option = "new";
+                    String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+                    String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+                    SignInController.oos.writeObject(new String[] {signature, encOption});
                     SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tField.getText(), SignInController.sessionKey));
 
                     SignInController.oos.writeObject(SignInController.asymmetricCrypto.SymmetricFileEncryption(data.getBytes(), SignInController.sessionKey));

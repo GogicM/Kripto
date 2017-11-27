@@ -7,6 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -93,20 +96,26 @@ public class UserPanelController {
 
     @FXML
     protected void handleSaveButton(ActionEvent event) {
-
-        try {
-            SignInController.oos.writeObject("");
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("modify", SignInController.privateKey));
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tArea.getText(), SignInController.sessionKey));
-            if("true".equals(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey))) {
-                alert("You successfully edited file");
-            } else {
-                alert("File can not be edited");
-            }
-            tArea.setVisible(false);
-        } catch (Exception ex) {
-            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    	if(!tArea.isVisible()) {
+    		alert("You have to modify file in order to save it!");
+    	} else {
+	        try {
+	            SignInController.oos.writeObject("");
+	            String option = "modify";
+	            String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+	            String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+	            SignInController.oos.writeObject(new String[] {signature, encOption});
+	            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tArea.getText(), SignInController.sessionKey));
+	            if("true".equals(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey))) {
+	                alert("You successfully edited file");
+	            } else {
+	                alert("File can not be edited");
+	            }
+	            tArea.setVisible(false);
+	        } catch (Exception ex) {
+	            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
+	        }
+    	}
 
     }
 
@@ -117,28 +126,27 @@ public class UserPanelController {
         String content = tArea.getText();
         try {
             SignInController.oos.writeObject("");
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("edit", SignInController.privateKey));
+            String option = "edit";
+            String encOption =  SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+            String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+            SignInController.oos.writeObject(new String[] {signature, encOption});
             SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(fileName, SignInController.sessionKey));
             tArea.setText(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InvalidKeyException ex) {
-            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IllegalBlockSizeException ex) {
-            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (BadPaddingException ex) {
-            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        } 
 
     }
 
     @FXML
     protected void handleShowLogsButton(ActionEvent event) {
         try {
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("logs", SignInController.privateKey));
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("logs", SignInController.privateKey));
+        	String option = "logs";
+            String encOption =  SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+            String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+
+            SignInController.oos.writeObject("");
+            SignInController.oos.writeObject(new String[] {signature, encOption});
             String logsFromServer = new String(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
             logs.setText(logsFromServer);
         } catch (Exception e) {
@@ -172,8 +180,11 @@ public class UserPanelController {
     	try {
     		FileOutputStream fos = null;
     		SignInController.oos.writeObject("");
+          	String option = "download";
+            String encOption =  SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
+            String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
 
-			SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringAsymmetric("download", SignInController.privateKey));
+			SignInController.oos.writeObject(new String[] {signature, encOption});
 
     		while(true) {
     			
@@ -193,22 +204,10 @@ public class UserPanelController {
     		}
     		fos.close();
     		
-		} catch (InvalidKeyException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (IllegalBlockSizeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (BadPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 
         
     }
@@ -219,9 +218,15 @@ public class UserPanelController {
         String[] fileNames;
         String[] cFileNames;
         String option = "get";
-        String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("get", SignInController.privateKey);
-        SignInController.oos.writeObject(encOption);
-        SignInController.oos.writeObject(encOption);
+        String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric("get", SignInController.serverPublicKey);
+        String signature = null;
+		try {
+			signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+        SignInController.oos.writeObject("");
+        SignInController.oos.writeObject(new String[]{signature, encOption});
 
         cFileNames = (String[]) SignInController.ois.readObject();
         fileNames = new String[cFileNames.length];
