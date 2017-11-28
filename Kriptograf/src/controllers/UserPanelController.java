@@ -40,8 +40,6 @@ public class UserPanelController {
 
     protected static ObservableList<String> data = FXCollections.observableArrayList();
     private String fileName;
-    private String fileContent;
-    private Socket socket;
     private String userName;
     private static final int PORT_NUMBER = 9999;
     @FXML
@@ -228,6 +226,7 @@ public class UserPanelController {
                 fos.write(data.split("#")[1].getBytes());
 
             }
+            alert("Download successful.");
             fos.close();
 
         } catch (Exception e) {

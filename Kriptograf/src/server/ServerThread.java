@@ -114,10 +114,9 @@ public class ServerThread extends Thread {
 	                    	password = aCrypto.DecryptStringAsymmetric(signedPassword[1], privateKey);
 	                        //login response
 	                        boolean login = loginCheck(userName, password);
-	                        if (login) {
+	                       // if (login) {
 	                            oos.writeObject(loginCheck(userName, password));
-	                        }
-	                      //  privateKey = aCrypto.getPrivateKey("src/keys/" + userName + "DER.key");
+	                       // }
 	                        File keyFile = new File("src/server/serverSessionKey" + userName);
 	                        keyFile.setReadOnly();
 	                        if (!keyFile.exists()) {
@@ -210,7 +209,7 @@ public class ServerThread extends Thread {
 	                        changeFileWatcher(userName, "new", fileName);
 	                        String status = f.exists() ? "true" : "false";
 	                        String signature = aCrypto.signMessagge(status, privateKey);
-	                        oos.writeObject(new String[] {aCrypto.EncryptStringSymmetric(status, sessionKey)});
+	                        oos.writeObject(new String[] {signature, aCrypto.EncryptStringSymmetric(status, sessionKey)});
 	                    }
 	                    if ("logs".equals(option)) {
 	                    	System.out.println("LOOOOG : " + getLog(userName, serverSecretKey));
@@ -218,12 +217,6 @@ public class ServerThread extends Thread {
 	                    	String signature = aCrypto.signMessagge(log, privateKey);
 	                        oos.writeObject(new String[] {signature, aCrypto.EncryptStringSymmetric(log, sessionKey)});
 	                    }
-//	                    if (("content").equals(option)) {
-//	                        String path = aCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-//	                        System.out.println("PATH " + path);
-//	                        String content = getFileContent(path);
-//	                        oos.writeObject(aCrypto.EncryptStringSymmetric("", sessionKey));
-//	                    }
 	                    if (("edit").equals(option)) {
 	                    	String[] contentFromController = (String[]) ois.readObject();
 	                    	fileName = aCrypto.DecryptStringSymmetric(contentFromController[1], sessionKey);
@@ -260,12 +253,6 @@ public class ServerThread extends Thread {
 	                            String fileContentForUser = new String(aCrypto.readFromFile(new File(PATH + userName + "/" + fileNames[i]), serverSecretKey));
 	                            String fileNameWithContent = fileNamesMap.get(fileNames[i]) + "#" + fileContentForUser;
 	                            String signature = aCrypto.signMessagge(fileNameWithContent, privateKey);
-	                            /* 
-	                             * In file names map as a key we are using real file name , and as a value we are using file content
-	                             */
-	//                            System.out.println("KLJUC : " + fileNamesMap.get(fileNames[i]));
-	//                            fileNamesMap.put(fileNamesMap.get(fileNames[i]), fileContentForUser);
-	                          //  byte[] byteMap = hashMapToByteArray((HashMap<String, String>) fileNamesMap);
 	                            oos.writeObject(new String[] {signature, aCrypto.EncryptStringSymmetric(fileNameWithContent, sessionKey)});
 	                        }
 	                        oos.writeObject(new String[] {aCrypto.signMessagge("stop", privateKey), aCrypto.EncryptStringSymmetric("stop", sessionKey)});
@@ -279,7 +266,9 @@ public class ServerThread extends Thread {
         }
     }
 
-    //helper method for checking credentials
+    /*
+     * Helper method for checking credentials
+     */
     private boolean loginCheck(String userName, String password) {
         boolean login = false;
         String line = null;
@@ -303,12 +292,6 @@ public class ServerThread extends Thread {
         return login;
     }
 
-    //helper method for checking is certificate active in crl
-    public boolean checkCertificate(X509Certificate certificate) {
-        boolean active = false;
-
-        return active;
-    }
 
     private String[] getFileNames(String path) {
 
@@ -327,8 +310,8 @@ public class ServerThread extends Thread {
     }
 
     /* 
-    * Method for tracking changes on user files, and for log creation
-    *
+     * Method for tracking changes on user files, and for log creation
+     *
      */
     private void changeFileWatcher(String uName, String option, String fileName) {
     	
@@ -392,23 +375,21 @@ public class ServerThread extends Thread {
 
             byte fileContent[] = new byte[(int) file.length()];
 
-            // Reads up to certain bytes of data from this input stream into an array of bytes.
             fin.read(fileContent);
-            //create string from byte array
             byte[] array = aCrypto.SymmetricFileDecription(fileContent, sessionKey);
             String s = new String(array);
             System.out.println("File content: " + s);
 
-            // content = aCrypto.DecryptStringSymmetric(s, sessionKey);
             content += s;
-            System.out.println("CONTENT : " + content);
         } catch (Exception e) {
             e.printStackTrace();
         }
         //br.close();
         return content;
     }
-    //helper method to convert Object to byte array
+    /*
+     * Helper method to serialize Object
+     */
 
     private void serialize(Object obj, String path) throws IOException {
         File f = new File(path);
@@ -430,7 +411,9 @@ public class ServerThread extends Thread {
             }
         }
     }
-
+    /*
+     * Helper method to deserialize hash map in which we store hashed and real file names
+     */
     private HashMap<String, String> deserializeFromFile(File f) {
 
         Map<String, String> map = new HashMap<String, String>();
@@ -453,7 +436,7 @@ public class ServerThread extends Thread {
 
     /*
     * Helper method for getting key based on value sent from controller
-    * I send real file name from server, and need to find his hash value in order
+    * We send real file name from server, and need to find his hash value in order
     * to access it on disk
      */
     private String getKeyFromValue(Map<String, String> map, String value) {
@@ -465,10 +448,11 @@ public class ServerThread extends Thread {
                 break; //breaking because its one to one map
             }
         }
-        System.out.println("KEY FROM VALU: " + key);
         return key;
     }
-
+    /*
+     * Helper methods for reading and writing from / to file symmetric keys used for user files encryption
+     */
     private void writeKeyToFile(File file, SecretKey key) throws IOException,
             BadPaddingException, InvalidKeyException,
             IllegalBlockSizeException {

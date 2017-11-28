@@ -159,13 +159,15 @@ public class SignInController {
                     //login went well, now client sends certificate				                 
                     serverPublicKey = (PublicKey) ois.readObject();
                     boolean login;
+                    boolean flag = true;
+
                     do {
                         login = loginCheck(uName, password);
-                        //    }
-                        System.out.println("LOGIN : " + login);
-                        if (!login) {
-                            alert("Wrong user name or password!");
-                        }
+//                        if (!login && flag) {
+//                            alert("Wrong user name or password!");
+//                            flag = false;
+//                        }
+                        
                     } while (!login);
 
                     browseLabel.setVisible(true);
@@ -198,7 +200,6 @@ public class SignInController {
             fileChooser.setInitialDirectory(file);
         }
         file = fileChooser.showOpenDialog(getStage());
-        System.out.println("FILE NAME : " + file.getName().split("\\.")[0]);
         if(!uName.equals(file.getName().split("\\.")[0])) {
         	alert("Certificate not compatibile to this user.");
         	send.setVisible(false);
@@ -217,7 +218,6 @@ public class SignInController {
             if (sendCertificate(uName)) {
 
                 FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/userPanel.fxml"));
-                System.out.println("Proslo");
                 Parent root = (Parent) loader.load();
 
                 UserPanelController controller = loader.getController();
@@ -273,10 +273,8 @@ public class SignInController {
         //for some reason, first writeObject dissappears, so I had to send empty String
         oos.writeObject("");
         String signature = asymmetricCrypto.signMessagge(option, privateKey);
-       // String signedEncOption = asymmetricCrypto.signMessagge(option, privateKey);
         String encOption = asymmetricCrypto.EncryptStringAsymmetric(option, serverPublicKey);
         String[] signatureAndOption = new String[]{signature, encOption};
-        System.out.println("SIGNATURE LENGTH : " + signatureAndOption[0].getBytes().length + " AND OPTION : " + signatureAndOption[1]);
         //encrypt option and send to server
         oos.writeObject(signatureAndOption);
         //encrypt username and send to server#
@@ -305,13 +303,10 @@ public class SignInController {
         String signature = asymmetricCrypto.signMessagge(option, privateKey);
         oos.writeObject(new String[] {signature, optionEncrypted});
         certificate = asymmetricCrypto.getCertificate("src\\certificates\\" + uName + ".crt");
-        System.out.println("CERTIFICATE SIZE : " + certificate.getEncoded().length + "SIGNED CERT SIZE : " + asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes().length);
         byte[] array = concatanateByteArrays(asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes(), certificate.getEncoded());
         
         oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(array, sessionKey));
-        System.out.println("SIZE OF CERT : " + certificate.getEncoded().length + "size of signature : " + asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes().length);
         String cn = certificate.getSubjectX500Principal().toString().split(",")[0];
-        System.out.println("SIZE OF CN : " + cn.getBytes().length);
         oos.writeObject(asymmetricCrypto.EncryptStringSymmetric(cn, sessionKey));
         String[] dataFromServer = (String[]) ois.readObject();
                 value = asymmetricCrypto.DecryptStringSymmetric(dataFromServer[1], sessionKey);
@@ -386,9 +381,7 @@ public class SignInController {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-    	System.out.println("FIRST's size :" +first.length + "second's size: " + second.length);
     	byte[] concatanated = output.toByteArray();
-    	System.out.println("output's size :" + concatanated.length);
 
     	return concatanated;
     }

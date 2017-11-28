@@ -1,0 +1,8 @@
+- 3 accounts
+	user name : mgogic 
+	password : mgogic
+	user name : student
+	password : student
+	user name : user
+	password : user
+Application written in JavaFX, main method is in SecureDataStorage.java file

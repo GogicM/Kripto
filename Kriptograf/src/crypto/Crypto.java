@@ -40,6 +40,9 @@ import java.util.logging.Logger;
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
 
+/*
+ * Class that contains asymmetric and symmetric cryptography methods
+ */
 public class Crypto {
 
     private Cipher asymmCipher;
@@ -52,10 +55,8 @@ public class Crypto {
 
     public Crypto() throws NoSuchAlgorithmException, NoSuchPaddingException {
         this.asymmCipher = Cipher.getInstance("RSA");
-        // this.asymmCipher.init(keylength);
         //Changed from CBC to ECB, had problems with iv for CBC
         this.symmCipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-        //this.symmCipher = Cipher.getInstance("AES/ECB/NoPadding");
 
     }
 
@@ -106,13 +107,7 @@ public class Crypto {
             throws InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException, NoSuchAlgorithmException {
 
-//	    	sr = SecureRandom.getInstance("SHA1PRNG");
-//	    	kg = KeyGenerator.getInstance("AES");
-//	    	kg.init(128, sr);
         this.symmCipher.init(Cipher.ENCRYPT_MODE, key);
-        // Crypto.iv = new IvParameterSpec(this.symmCipher.getIV());
-        //   iv = new IvParameterSpec(this.symmCipher.getIV());
-
         return this.symmCipher.doFinal(file);
     }
 
@@ -122,13 +117,7 @@ public class Crypto {
     public byte[] SymmetricFileDecription(byte[] file, SecretKey key)
             throws InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException, InvalidAlgorithmParameterException {
-        //System.out.println("IV : " + this.iv);
-//	        try {
-//				Thread.currentThread().sleep(3000);
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
+
         this.symmCipher.init(Cipher.DECRYPT_MODE, key);
         return this.symmCipher.doFinal(file);
     }
@@ -189,7 +178,7 @@ public class Crypto {
     }
 
     /*
-	        Method for string (message) encryption with symmetric algorithm
+	        Method for string (message) encryption with symmetric key
      */
     public String EncryptStringSymmetric(String message, SecretKey key)
             throws InvalidKeyException, IllegalBlockSizeException,
@@ -221,9 +210,9 @@ public class Crypto {
     		throws InvalidKeyException, IllegalBlockSizeException,
     		BadPaddingException {
     	
-    	if(array == null) {
-    		System.out.println("ARRAY IS NULL");
-    	}
+//    	if(array == null) {
+//    		System.out.println("ARRAY IS NULL");
+//    	}
 
     	String[] encryptedArray = new String[array.length];
     	this.symmCipher.init(Cipher.ENCRYPT_MODE, key);

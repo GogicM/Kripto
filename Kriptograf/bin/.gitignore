@@ -1,9 +1,11 @@
-/crypto/
+/certificates/
 /controllers/
+/crypto/
+/fxml/
+/keys/
+/securedatastorage/
 /server/
-/serverSessionKey
 /serverSessionKeymgogic
 /serverSessionKeystudent
 /serverSessionKeyuser
 /users/
-/securedatastorage/
