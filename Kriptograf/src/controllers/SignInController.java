@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -58,6 +59,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import server.ServerThread;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -88,7 +90,7 @@ public class SignInController {
     private static X509Certificate certificate;
     private static String username;
     private PublicKey publicKey;
-    protected static  PrivateKey privateKey;
+    protected static PrivateKey privateKey;
     protected static PublicKey serverPublicKey;
     private final Desktop desktop = Desktop.getDesktop();
     public static String uName;
@@ -130,7 +132,7 @@ public class SignInController {
             e.printStackTrace();
         }
     }
-    
+
     @FXML
     protected void handleSignInButton(ActionEvent event) {
 
@@ -149,7 +151,6 @@ public class SignInController {
                     //send public key to server
                     oos.writeObject(publicKey);
                     
-                    // boolean b = Boolean.valueOf(ois.readObject().toString());
                     byte[] keyFromServer = (byte[]) ois.readObject();
                     int length = asymmetricCrypto.AsymmetricFileDecription(keyFromServer, privateKey).length;
                     //sessionKey for symmetric encryption
@@ -161,6 +162,7 @@ public class SignInController {
                     do {
                         login = loginCheck(uName, password);
                         //    }
+                        System.out.println("LOGIN : " + login);
                         if (!login) {
                             alert("Wrong user name or password!");
                         }
@@ -277,7 +279,6 @@ public class SignInController {
         System.out.println("SIGNATURE LENGTH : " + signatureAndOption[0].getBytes().length + " AND OPTION : " + signatureAndOption[1]);
         //encrypt option and send to server
         oos.writeObject(signatureAndOption);
-        //oos.writeObject(asymmetricCrypto.EncryptStringArrayAsymmetric(signatureAndOption, privateKey));
         //encrypt username and send to server#
         encryptedUname = asymmetricCrypto.EncryptStringAsymmetric(username, serverPublicKey);
         oos.writeObject(new String[] {asymmetricCrypto.signMessagge(option, privateKey), encryptedUname});
@@ -290,10 +291,8 @@ public class SignInController {
         return login;
     }
 
-    private boolean sendCertificate(String uName) throws InvalidKeyException,
-            IllegalBlockSizeException, BadPaddingException,
-            IOException, CertificateException, ClassNotFoundException,
-            NoSuchAlgorithmException, InvalidKeySpecException, SignatureException {
+    private boolean sendCertificate(String uName) throws IOException, ClassNotFoundException,
+            GeneralSecurityException {
 
         String value = "";
 
@@ -309,15 +308,20 @@ public class SignInController {
         System.out.println("CERTIFICATE SIZE : " + certificate.getEncoded().length + "SIGNED CERT SIZE : " + asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes().length);
         byte[] array = concatanateByteArrays(asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes(), certificate.getEncoded());
         
-        oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(certificate.getEncoded(), sessionKey));
+        oos.writeObject(asymmetricCrypto.SymmetricFileEncryption(array, sessionKey));
+        System.out.println("SIZE OF CERT : " + certificate.getEncoded().length + "size of signature : " + asymmetricCrypto.signMessagge(certificate.toString(), privateKey).getBytes().length);
         String cn = certificate.getSubjectX500Principal().toString().split(",")[0];
+        System.out.println("SIZE OF CN : " + cn.getBytes().length);
         oos.writeObject(asymmetricCrypto.EncryptStringSymmetric(cn, sessionKey));
-        value = asymmetricCrypto.DecryptStringSymmetric((String) ois.readObject(), sessionKey);
-
+        String[] dataFromServer = (String[]) ois.readObject();
+                value = asymmetricCrypto.DecryptStringSymmetric(dataFromServer[1], sessionKey);
+        if(!asymmetricCrypto.verifyDigitalSignature(value, dataFromServer[0], serverPublicKey)) {
+        	alert("Intrusion has occured! Exiting application...");
+        	System.exit(0);
+        }
         if (("true").equals(value)) {
             isGood = true;
         }
-        System.out.println("VALUE : " + isGood);
 
         return isGood;
     }
@@ -388,6 +392,4 @@ public class SignInController {
 
     	return concatanated;
     }
-    
-
 }

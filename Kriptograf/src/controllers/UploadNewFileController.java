@@ -27,10 +27,17 @@ public class UploadNewFileController {
                     String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
                     String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
                     SignInController.oos.writeObject(new String[] {signature, encOption});
-                    SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tField.getText(), SignInController.sessionKey));
+                    String encTfieldData = SignInController.asymmetricCrypto.EncryptStringSymmetric(tField.getText(), SignInController.sessionKey);
+                    SignInController.oos.writeObject(new String[] {SignInController.asymmetricCrypto.signMessagge(tField.getText(), SignInController.privateKey), encTfieldData});
 
                     SignInController.oos.writeObject(SignInController.asymmetricCrypto.SymmetricFileEncryption(data.getBytes(), SignInController.sessionKey));
-                    String response = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
+                    String[] signatureAndResponse = (String[]) SignInController.ois.readObject();
+                    String response = SignInController.asymmetricCrypto.DecryptStringSymmetric(signatureAndResponse[1], SignInController.sessionKey);
+                    if(!SignInController.asymmetricCrypto.verifyDigitalSignature(response, signatureAndResponse[0], SignInController.serverPublicKey)) {
+                        UserPanelController.alert("Intrusion has occured! Exiting application...");
+                        System.exit(0);
+
+                    }
                     if("true".equals(response)) {
                         UserPanelController.alert("You succesfuly created file");
                     } else {

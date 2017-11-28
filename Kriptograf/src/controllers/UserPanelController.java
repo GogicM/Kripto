@@ -105,8 +105,15 @@ public class UserPanelController {
                 String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
                 String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
                 SignInController.oos.writeObject(new String[]{signature, encOption});
-                SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(tArea.getText(), SignInController.sessionKey));
-                if ("true".equals(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey))) {
+                String encData = SignInController.asymmetricCrypto.EncryptStringSymmetric(tArea.getText(), SignInController.sessionKey);
+                SignInController.oos.writeObject(new String[] {SignInController.asymmetricCrypto.signMessagge(tArea.getText(), SignInController.privateKey) ,encData});
+                String[] signatureAndStatus = (String[]) SignInController.ois.readObject();
+                String status = SignInController.asymmetricCrypto.DecryptStringSymmetric(signatureAndStatus[1], SignInController.sessionKey);
+                if(!SignInController.asymmetricCrypto.verifyDigitalSignature(status, signatureAndStatus[0], SignInController.serverPublicKey)) {
+                	alert("Intrusion occured! Exiting application...");
+                	System.exit(0);
+                }
+                if ("true".equals(status)) {
                     alert("You successfully edited file");
                 } else {
                     alert("File can not be edited");
@@ -130,8 +137,15 @@ public class UserPanelController {
             String encOption = SignInController.asymmetricCrypto.EncryptStringAsymmetric(option, SignInController.serverPublicKey);
             String signature = SignInController.asymmetricCrypto.signMessagge(option, SignInController.privateKey);
             SignInController.oos.writeObject(new String[]{signature, encOption});
-            SignInController.oos.writeObject(SignInController.asymmetricCrypto.EncryptStringSymmetric(fileName, SignInController.sessionKey));
-            tArea.setText(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
+            String encFileName = SignInController.asymmetricCrypto.EncryptStringSymmetric(fileName, SignInController.sessionKey);
+            SignInController.oos.writeObject(new String[] {SignInController.asymmetricCrypto.signMessagge(fileName, SignInController.privateKey), encFileName });
+            String[] signatureAndContent = (String[]) SignInController.ois.readObject();
+            String contentFromServer = SignInController.asymmetricCrypto.DecryptStringSymmetric(signatureAndContent[1], SignInController.sessionKey);
+            if(!SignInController.asymmetricCrypto.verifyDigitalSignature(contentFromServer, signatureAndContent[0], SignInController.serverPublicKey)) {
+            	alert("Intrusion occured! Exiting application...");
+            	System.exit(0);
+            }
+            tArea.setText(contentFromServer);
         } catch (Exception ex) {
             Logger.getLogger(UserPanelController.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -147,7 +161,12 @@ public class UserPanelController {
 
             SignInController.oos.writeObject("");
             SignInController.oos.writeObject(new String[]{signature, encOption});
-            String logsFromServer = new String(SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey));
+            String[] logsAndSignatureFromServer = (String[]) SignInController.ois.readObject();
+            String logsFromServer = new String(SignInController.asymmetricCrypto.DecryptStringSymmetric(logsAndSignatureFromServer[1], SignInController.sessionKey));
+            if(!SignInController.asymmetricCrypto.verifyDigitalSignature(logsFromServer, logsAndSignatureFromServer[0], SignInController.serverPublicKey)) {
+            	alert("Intrusion has occured! Exiting application...");
+            	System.exit(0);
+            }
             logs.setText(logsFromServer);
         } catch (Exception e) {
             e.printStackTrace();
@@ -191,19 +210,22 @@ public class UserPanelController {
             SignInController.oos.writeObject(new String[]{signature, encOption});
 
             while (true) {
+                String[] dataFromServer = (String[]) SignInController.ois.readObject();
+                String data = SignInController.asymmetricCrypto.DecryptStringSymmetric(dataFromServer[1], SignInController.sessionKey);
+                if(!SignInController.asymmetricCrypto.verifyDigitalSignature(data, dataFromServer[0], SignInController.serverPublicKey)) {
+                	alert("Intrusion occured! Exiting application...");
+                	System.exit(0);
+                }
 
-                String dataFromServer = SignInController.asymmetricCrypto.DecryptStringSymmetric((String) SignInController.ois.readObject(), SignInController.sessionKey);
-
-                if ("stop".equals(dataFromServer)) {
+                if ("stop".equals(data)) {
                     break;
                 }
 
                 File userDirectory = new File("src/users/" + userName);
-                System.out.println("DATA FROM SERVER IN U PANEL CONTROLLER : " + dataFromServer);
                 userDirectory.mkdir();
-                File userFile = new File(userDirectory.getPath() + "/" + dataFromServer.split("#")[0]);
+                File userFile = new File(userDirectory.getPath() + "/" + data.split("#")[0]);
                 fos = new FileOutputStream(userFile);
-                fos.write(dataFromServer.split("#")[1].getBytes());
+                fos.write(data.split("#")[1].getBytes());
 
             }
             fos.close();
@@ -233,6 +255,9 @@ public class UserPanelController {
         SignInController.oos.writeObject(new String[]{signature, encOption});
 
         cFileNames = (String[]) SignInController.ois.readObject();
+        
+        
+
         fileNames = new String[cFileNames.length];
         try {
             fileNames = SignInController.asymmetricCrypto.DecryptStringArraySymmetric(cFileNames, SignInController.sessionKey);

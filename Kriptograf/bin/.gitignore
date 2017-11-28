@@ -1,3 +1,9 @@
 /crypto/
 /controllers/
 /server/
+/serverSessionKey
+/serverSessionKeymgogic
+/serverSessionKeystudent
+/serverSessionKeyuser
+/users/
+/securedatastorage/
